@@ -1,8 +1,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
 #include "ToyPlayerController.generated.h"
+
 
 class UInputMappingContext;
 class UInputAction;
@@ -14,6 +16,7 @@ class DREAMPROTECTOR_API AToyPlayerController : public APlayerController
 public:
 	AToyPlayerController();
 
+	//
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* InputMappingContext;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -24,7 +27,12 @@ public:
 	UInputAction* LookAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* SprintAction;
+	
+protected:
+	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 
 private:
-	void BeginPlay();
+	void Move(const FInputActionValue& Value);
+	
 };

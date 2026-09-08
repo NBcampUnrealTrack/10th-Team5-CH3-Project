@@ -24,4 +24,6 @@ public:
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void Move(const FVector2D& MovementVector);
+
 };
