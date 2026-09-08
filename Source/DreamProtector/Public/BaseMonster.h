@@ -4,12 +4,11 @@
 #include "GameFramework/Character.h"
 #include "BaseMonster.generated.h"
 
-
-
 UCLASS()
 class DREAMPROTECTOR_API ABaseMonster : public ACharacter
 {
 	GENERATED_BODY()
+
 
 public:
 	
@@ -34,7 +33,8 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Monster|Damage")
 	void Attack();
-	//  virtual void Attack_Implementation();   자폭병 오버라이드해서 작성하려고 햇으니 포기
+	virtual void Attack_Implementation(); //
+
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
 	float MaxHealth = 50.0f;            // 최대 체력

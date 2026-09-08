@@ -44,9 +44,9 @@ void ABaseMonster::SetTarget(AActor* InTarget)
 
 void ABaseMonster::TakeDamage(float DamageAmount)         // 데미지 받을 때 외부(공격한 쪽)에서 호출
 {
-	if (CurrentHealth <= 0.0f) return;                        // 이미 죽었으면 무시 retrun (중복 데미지 막기)
+	if (CurrentHealth <= 0.0f) return;                    // 이미 죽었으면 무시 retrun (중복 데미지 막기)
 
-	CurrentHealth -= DamageAmount;                            // 받은 데미지만큼 체력 감소
+	CurrentHealth -= DamageAmount;                        // 받은 데미지만큼 체력 감소
 
 	if (CurrentHealth <= 0.0f)
 	{
@@ -54,9 +54,10 @@ void ABaseMonster::TakeDamage(float DamageAmount)         // 데미지 받을 �
 	}
 }
 
-/*void ABaseMonster::Attack_Implementation()
+void ABaseMonster::Attack_Implementation()
 {
-}*/
+
+}
 
 void ABaseMonster::Die()                                  // 체력 0이하가 되면 takeDamage()에서 호출
 {
