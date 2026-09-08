@@ -1,0 +1,57 @@
+﻿#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Character.h"
+#include "BaseMonster.generated.h"
+
+
+
+UCLASS()
+class DREAMPROTECTOR_API ABaseMonster : public ACharacter
+{
+	GENERATED_BODY()
+
+public:
+	
+	ABaseMonster();     // 생성자 
+
+protected:
+	
+	virtual void BeginPlay() override;
+
+public:	
+	
+	virtual void Tick(float DeltaTime) override;                                                       // 매 프레임 호출 - 자식 클래스에서 사거리 체크 등
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;      // 
+
+	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
+	void SetTarget(AActor* InTarget);                            // 추적 / 공격할 대상 지정
+
+	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
+	virtual void TakeDamage(float DamageAmount);                 // 데미지 받을면 호출 -> HP 깎고 0이하면 뒤짐(Die 호출)
+
+protected:
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Monster|Damage")
+	void Attack();
+	//  virtual void Attack_Implementation();   자폭병 오버라이드해서 작성하려고 햇으니 포기
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
+	float MaxHealth = 50.0f;            // 최대 체력
+
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Stats")
+	float CurrentHealth;                // 현제 체력
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
+	float AttackDamage = 10.0f;      // 공격력, Attack 에 데미지 계산
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
+	float MoveSpeed = 200.0f;       // 이동 속도, CharacterMovementComponent에 적용
+
+	UPROPERTY(BlueprintReadOnly, Category = "Monster")
+	TObjectPtr<AActor> Target;      // 추적 / 공격 대상
+
+
+	UFUNCTION()
+	virtual void Die();             // 사망 처리 (이동, 충돌, 연출, Destory 등)
+};
