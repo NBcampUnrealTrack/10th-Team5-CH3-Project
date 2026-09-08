@@ -20,7 +20,28 @@ AProjectileBase::AProjectileBase()
 	//중력 영향 (현재는 0 == 직선)
 	ProjectileMovement->ProjectileGravityScale = 0.0f;
 
+
+	//SphereCollision에서 Overlap이 시작 될때 현재 객체에서 OnOverlap 함수 실행
+	SphereCollision->OnComponentBeginOverlap.AddDynamic(
+		this,
+		&AProjectileBase::OnOverlapBegin
+	);
 }
+
+void AProjectileBase::OnOverlapBegin(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Overlap: %s"), *OtherActor->GetName());
+	}
+}
+
 
 
 

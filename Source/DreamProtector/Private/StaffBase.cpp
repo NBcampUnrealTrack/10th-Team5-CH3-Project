@@ -12,9 +12,9 @@ AStaffBase::AStaffBase()
 
 void AStaffBase::Attack()
 {
-  //스태프에 현재 위치 가져오기
+  //스태프에 Muzzle 현재 위치 가져오기
   FVector SpawnLocation = MuzzlePoint->GetComponentLocation();
-  //스태프에 현재 방향 가져오기
+  //스태프에 Muzzle 현재 방향 가져오기
   FRotator SpawnRotation = MuzzlePoint->GetComponentRotation();
 
   //투사체 클래스가 지정되어있으면 실행

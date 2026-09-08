@@ -15,7 +15,7 @@ public:
 	AProjectileBase();
 
 protected:
-
+	//충돌 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USphereComponent* SphereCollision;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -24,6 +24,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UProjectileMovementComponent* ProjectileMovement;
 
+	// 투사체가 다른 액터와 Overlap 되었을 때 호출
+
+	UFUNCTION()
+	void OnOverlapBegin(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
 
 public:	
 
