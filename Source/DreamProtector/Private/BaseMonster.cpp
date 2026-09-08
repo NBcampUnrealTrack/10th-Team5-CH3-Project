@@ -9,6 +9,7 @@ ABaseMonster::ABaseMonster()
 	MaxHealth = 100.0f;
 	
 	AttackDamage = 10.0f;
+	AttackInterval = 1.5f;
 	MoveSpeed = 300.0f;
 }
 
@@ -42,6 +43,11 @@ void ABaseMonster::SetTarget(AActor* InTarget)
 	Target = InTarget;
 }
 
+void ABaseMonster::Attack_Implementation()
+{
+	// 기본 공격 로직
+}
+
 void ABaseMonster::TakeDamage(float DamageAmount)         // 데미지 받을 때 외부(공격한 쪽)에서 호출
 {
 	if (CurrentHealth <= 0.0f) return;                        // 이미 죽었으면 무시 retrun (중복 데미지 막기)
@@ -53,10 +59,6 @@ void ABaseMonster::TakeDamage(float DamageAmount)         // 데미지 받을 �
 		Die();                                            // 체력 0이면 사망
 	}
 }
-
-/*void ABaseMonster::Attack_Implementation()
-{
-}*/
 
 void ABaseMonster::Die()                                  // 체력 0이하가 되면 takeDamage()에서 호출
 {
