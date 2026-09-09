@@ -12,7 +12,8 @@ class DREAMPROTECTOR_API ABaseMonster : public ACharacter
 
 public:
 	
-	ABaseMonster();     // 생성자 
+	// 생성자 
+	ABaseMonster();     
 
 protected:
 	
@@ -20,38 +21,47 @@ protected:
 
 public:	
 	
-	virtual void Tick(float DeltaTime) override;                                                       // 매 프레임 호출 - 자식 클래스에서 사거리 체크 등
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;      // 
+	// 매 프레임 호출 - 자식 클래스에서 사거리 체크 등
+	virtual void Tick(float DeltaTime) override;                                                       
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
-	void SetTarget(AActor* InTarget);                            // 추적 / 공격할 대상 지정
+	// 추적 / 공격할 대상 지정
+	void SetTarget(AActor* InTarget);                            
 
 	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
-	virtual void TakeDamage(float DamageAmount);                 // 데미지 받을면 호출 -> HP 깎고 0이하면 뒤짐(Die 호출)
+	// 데미지 받을면 호출 -> HP 깎고 0이하면 뒤짐(Die 호출)
+	virtual void TakeDamage(float DamageAmount);                 
 
 protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Monster|Damage")
 	void Attack();
-	virtual void Attack_Implementation(); //
+	virtual void Attack_Implementation();
 
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
-	float MaxHealth = 50.0f;            // 최대 체력
+	// 최대 체력
+	float MaxHealth = 50.0f;            
 
 	UPROPERTY(BlueprintReadOnly, Category = "Monster|Stats")
-	float CurrentHealth;                // 현제 체력
+	// 현제 체력
+	float CurrentHealth;                
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
-	float AttackDamage = 10.0f;      // 공격력, Attack 에 데미지 계산
+	// 공격력, Attack 에 데미지 계산
+	float AttackDamage = 10.0f;      
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Monster|Stats")
-	float MoveSpeed = 200.0f;       // 이동 속도, CharacterMovementComponent에 적용
+	// 이동 속도, CharacterMovementComponent에 적용
+	float MoveSpeed = 200.0f;       
 
 	UPROPERTY(BlueprintReadOnly, Category = "Monster")
-	TObjectPtr<AActor> Target;      // 추적 / 공격 대상
+	// 추적 / 공격 대상
+	TObjectPtr<AActor> Target;      
 
 
 	UFUNCTION()
-	virtual void Die();             // 사망 처리 (이동, 충돌, 연출, Destory 등)
+	// 사망 처리 (이동, 충돌, 연출, Destory 등)
+	virtual void Die();             
 };
