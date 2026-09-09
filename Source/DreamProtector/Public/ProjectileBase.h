@@ -25,7 +25,6 @@ protected:
 	UProjectileMovementComponent* ProjectileMovement;
 
 	//투사체가 다른 액터와 Overlap 되었을 때 호출
-
 	UFUNCTION()
 	void OnOverlapBegin(
 		UPrimitiveComponent* OverlappedComponent,

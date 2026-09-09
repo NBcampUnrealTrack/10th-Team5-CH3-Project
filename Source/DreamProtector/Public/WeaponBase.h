@@ -14,7 +14,7 @@ class DREAMPROTECTOR_API AWeaponBase : public AActor, public IInteractable
 public:	
 	AWeaponBase();
 
-	//
+	
 	virtual void Interact(AActor* Interactor) override;
 
 protected:
@@ -38,5 +38,6 @@ protected:
 	//Attack 가상함수
 	virtual void Attack();
 
+	virtual void BeginPlay() override;
 
 };
