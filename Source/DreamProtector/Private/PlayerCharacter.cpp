@@ -27,3 +27,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }
 
+void APlayerCharacter::Move(const FVector2D& MovementVector) //플레이어 이동함수
+{
+	AddMovementInput(GetActorForwardVector(), MovementVector.X);
+	AddMovementInput(GetActorRightVector(), MovementVector.Y);
+}
