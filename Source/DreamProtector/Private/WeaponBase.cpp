@@ -16,12 +16,13 @@ void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Interact(this);
 }
 
 void AWeaponBase::Interact(AActor* Interactor)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Weapon Interact"));
+
+	Destroy();
 }
 
 void AWeaponBase::Attack()

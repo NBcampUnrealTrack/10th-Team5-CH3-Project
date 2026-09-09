@@ -17,6 +17,9 @@ public:
 	
 	virtual void Interact(AActor* Interactor) override;
 
+	//Attack 가상함수
+	virtual void Attack();
+
 protected:
 	//공격 데미지 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WeaponBase")
@@ -34,9 +37,6 @@ protected:
 	//static Mesh Component 포인터
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* StaticMeshComp;
-
-	//Attack 가상함수
-	virtual void Attack();
 
 	virtual void BeginPlay() override;
 
