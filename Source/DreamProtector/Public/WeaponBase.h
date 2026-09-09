@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "Interactable.h"
+#include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
 
