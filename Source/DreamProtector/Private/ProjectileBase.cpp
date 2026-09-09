@@ -36,10 +36,14 @@ void AProjectileBase::OnOverlapBegin(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (OtherActor)
+	//충돌한 Actor가 유효하지 않거나 나 자신이라면 무시
+	if (!OtherActor || OtherActor == this)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Overlap: %s"), *OtherActor->GetName());
+		return;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Overlap: %s"), *OtherActor->GetName());
+
 }
 
 
