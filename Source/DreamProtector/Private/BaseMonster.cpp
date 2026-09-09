@@ -1,5 +1,6 @@
 ﻿#include "BaseMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "MonsterAIController.h"
 
 
 ABaseMonster::ABaseMonster()
@@ -11,6 +12,11 @@ ABaseMonster::ABaseMonster()
 	AttackDamage = 10.0f;
 	AttackInterval = 1.5f;
 	MoveSpeed = 300.0f;
+
+	// 해당 몬스터가 스폰될 때 방의할 AI 컨트롤러 지정
+	AIControllerClass = AMonsterAIController::StaticClass();
+	// 레벨에 미리 배치 OR 스폰하면 자동으로 AI가 빙의 설정
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void ABaseMonster::BeginPlay()   

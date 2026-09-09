@@ -29,28 +29,22 @@ void AFlyingRanged::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// 타겟(플레이어)가 없거나 죽으면 아무것도 하기 싫어요~
-	if (!Target || CurrentHealth <= 0.0f) return;
+	if (CurrentHealth <= 0.0f) return;
 
+	// 추적 / 공격은 BT 담당이라 비행 관련 물리만 처리
 	if (CheckObstacleAhead())
 	{
 		// 장애물 회피 우선
 		AvoidObstacle(DeltaTime);
 	}
-	else
-	{
-		// 장애물 X -> 플레이어한테 ㄱㄱ
-		MoveTowardsTarget(DeltaTime);
-	}
 	// 프레임마다 높이 조정
 	MaintainFlightHeight(DeltaTime);
-
-	if (IsTargetInAttackRange() && CanAttack())
-	{
-		Attack();
-	}
 }
-void AFlyingRanged::MoveTowardsTarget(float DeltaTime)
+
+void AFlyingRanged::MoveTowardsTarget()
 {
+	if (!Target) return;
+
 	FVector Direction = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 	// CharacterMovementComponent 로 이동 입력 적용
 	AddMovementInput(Direction, 1.0f);
@@ -101,6 +95,10 @@ bool AFlyingRanged::CanAttack() const
 void AFlyingRanged::Attack_Implementation()
 {
 	// 공격 애니메이션
+	if (!Target) return;
+	// 쿨타임 갱신
+	LastAttackTime = GetWorld()->GetTimeSeconds();
+
 	if (AttackMontage)
 	{
 		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
@@ -129,6 +127,4 @@ void AFlyingRanged::Attack_Implementation()
 	}
 
 	// 투사체(AEnemyProjectile) 스폰 방식으로 갈지, 즉시 데미지 적용할지 결정 필요
-	// 지금은 즉시 데미지 적용 방식으로 임시 구현
-	// (Target 쪽에 TakeDamage(float) 함수가 있다는 전제)
 }

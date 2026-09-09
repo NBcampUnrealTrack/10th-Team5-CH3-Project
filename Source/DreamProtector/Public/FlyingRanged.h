@@ -4,6 +4,10 @@
 #include "BaseMonster.h"
 #include "FlyingRanged.generated.h"
 
+class UAnimMontage;
+class UParticleSystem;
+class USoundBase;
+
 UCLASS()
 class DREAMPROTECTOR_API AFlyingRanged : public ABaseMonster
 {
@@ -21,22 +25,28 @@ public:
 	// 매 프레임마다 추척 / 높이 / 장애물 / 공격 판정
 	virtual void Tick(float DeltaTime) override;
 
+	// BT Task에 호출할 함수드 (외부에서 호출 = public)
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	// BT Task가 호출 = 현재 타겟을 향해 이동
+	void MoveTowardsTarget();
+	// BT Decorator / Task가 호출 = 사거리 안 인지 체크
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	bool IsTargetInAttackRange() const;
+	// BT Task가 호출 = 쿨타임 지났는지 확인 
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	bool CanAttack() const;
+
 protected:
-	// 원거리 공격 (데미지, 투사체)
+	// BT Task가 호출 = 원거리 공격 실행(데미지, 투사체)
 	virtual void Attack_Implementation() override;
 
-	// 캐릭터를 향해 수평 이동
-	void MoveTowardsTarget(float DeltaTime);
-	// 지정된 높이를 유지 (z 축 보정)
-	void MaintainFlightHeight(float DeltaTime);
-	// 진행 방향에 장애물 있는지 라인트레이스 체크
+	// 매 프레임 자동으로 지정된 높이 유지하게 Z축 보정
+	void MaintainFlightHeight(float DeltaTiem);
+	// 장애물 감지 시 피해서 이동
 	void AvoidObstacle(float DeltaTime);
-	// 타켓이 공격 범위에 들어왔는지 확인
+	// 진행 방향에 장애물 있는지 라이트레이스로 확인
 	bool CheckObstacleAhead();
-	// 장애물 감시 시 피해서 이동
-	bool IsTargetInAttackRange() const;
-	// 쿨타임이 지나 공격 가능한지 확인
-	bool CanAttack() const;
+	
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
 	// 공격 사거리 
@@ -62,11 +72,11 @@ protected:
 
 	// 이펙트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect")
-	// 공격 발사 시점 (아마 꼬리쪽)
+	// 공격 발사 시점 (아마 머리 / 꼬리쪽)
 	TObjectPtr<UParticleSystem> AttackEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect")
-	// 이펙트를 붙일 소켓 이름 ( 스켈레톤에 맞게 수정 필요함)
+	// 이펙트를 붙일 소켓 이름 (스켈레톤에 맞게 수정 필요함)
 	FName AttackEffectSocketName = "Mouth";
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Sound")
