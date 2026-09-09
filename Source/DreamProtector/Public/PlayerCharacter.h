@@ -29,8 +29,16 @@ protected:
 	float WalkSpeed = 500.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float SprintSpeed = 800.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health")
+	float MaxHP = 100.0f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+	float CurrentHP;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mana")
+	int32 MaxMana = 30;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mana")
+	int32 CurrentMana;
 
-
+ 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	AWeaponBase* CurrentWeapon;
 
@@ -43,6 +51,12 @@ public:
 	void Move(const FVector2D& MovementVector);
 	void StartSprint();
 	void StopSprint();
+
+	float GetMaxHP()const;
+	float GetCurrentHP()const;
+	float GetMaxMana()const;
+	float GetCurrentMana()const;
+	bool ConsumeMana();
 
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();

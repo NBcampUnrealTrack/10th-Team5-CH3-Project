@@ -12,6 +12,8 @@
 //Controller가 현재 조종 중인 Pawn을 PlayerCharacter로 변환해서 Move()함수를 호출하기 위해 사용함
 #include "PlayerCharacter.h"
 
+
+
 AToyPlayerController::AToyPlayerController()
     //Input관련 포인터들을 처음에는 아무것도 가리키지 않는 상태로 초기화함.
     //이후에 BluePrint에서 실제 IMC와Input Action을 지정함
@@ -19,7 +21,9 @@ AToyPlayerController::AToyPlayerController()
 	MoveAction(nullptr),
 	JumpAction(nullptr),
 	LookAction(nullptr),
-	SprintAction(nullptr)
+	SprintAction(nullptr),
+	AttackAction(nullptr),
+	InteractionAction(nullptr)
 {
 
 }
@@ -117,6 +121,16 @@ void AToyPlayerController::SetupInputComponent()
 				&AToyPlayerController::StopSprint
 			);
 		}
+
+		if (AttackAction)
+		{
+			EnhancedInputComponent->BindAction(
+				AttackAction,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::Attack
+			);
+		}
 	}
 }
 
@@ -173,5 +187,17 @@ void AToyPlayerController::StopSprint()
 		Cast<APlayerCharacter>(GetPawn()))
 	{
 		PlayerCharacter->StopSprint();
+	}
+}
+//
+void AToyPlayerController::Attack()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		if (PlayerCharacter->ConsumeMana())
+		{
+			PlayerCharacter->Attack();
+		}
 	}
 }

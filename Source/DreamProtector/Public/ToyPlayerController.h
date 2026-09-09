@@ -27,7 +27,11 @@ public:
 	UInputAction* LookAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* SprintAction;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* AttackAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* InteractionAction;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
@@ -39,5 +43,6 @@ private:
 	void StopJump();
 	void StartSprint();
 	void StopSprint();
+	void Attack();
 	
 };
