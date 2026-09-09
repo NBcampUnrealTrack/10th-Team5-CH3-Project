@@ -34,5 +34,10 @@ protected:
 
 private:
 	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+	void StartJump();
+	void StopJump();
+	void StartSprint();
+	void StopSprint();
 	
 };
