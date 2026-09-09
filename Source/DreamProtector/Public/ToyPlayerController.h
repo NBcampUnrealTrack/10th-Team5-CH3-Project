@@ -16,7 +16,7 @@ class DREAMPROTECTOR_API AToyPlayerController : public APlayerController
 public:
 	AToyPlayerController();
 
-	//
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* InputMappingContext;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
