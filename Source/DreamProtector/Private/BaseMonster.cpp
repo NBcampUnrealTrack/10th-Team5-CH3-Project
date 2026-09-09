@@ -9,13 +9,13 @@ ABaseMonster::ABaseMonster()
 	MaxHealth = 100.0f;
 	
 	AttackDamage = 10.0f;
+	AttackInterval = 1.5f;
 	MoveSpeed = 300.0f;
 }
 
 void ABaseMonster::BeginPlay()   
 {
 	Super::BeginPlay();
-	
 	// 현제 체력 최대 체력으로 초기화
 	CurrentHealth = MaxHealth;                                       
 
@@ -28,16 +28,14 @@ void ABaseMonster::BeginPlay()
 
 void ABaseMonster::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
 	// 사거리 체크 후 Attack() 로직 (원거리)
 	// 자식 클래스마다 방식을 (오버랩 / 사거리) 각 구현
-}
+	Super::Tick(DeltaTime);
 
+}
 // 외부에서 타겟 지정할 때 호출
 void ABaseMonster::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)    
-{
-	// 몬스터는 플레이어 입력을 받지 않아 필요없는 부분
+{// 몬스터는 플레이어 입력을 받지 않아 필요없는 부분
 	Super::SetupPlayerInputComponent(PlayerInputComponent);                            
 }
 
@@ -79,6 +77,7 @@ void ABaseMonster::Die()
 	SetActorEnableCollision(false);                       
 
 	// 애니메이션이난 이펙트 재생 및 웨이브에 알리는 곳
+	SetActorEnableCollision(false);                       
 
 	// 액터 제거
 	Destroy();                                            

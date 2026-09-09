@@ -35,7 +35,7 @@ public:
 
 protected:
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Monster|Damage")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Monster|Damage")
 	void Attack();
 	virtual void Attack_Implementation();
 
@@ -61,6 +61,9 @@ protected:
 	TObjectPtr<AActor> Target;      
 
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
+	float AttackInterval;
+	// 사망 처리 (이동, 충돌, 연출, Destory 등)
 	UFUNCTION()
 	// 사망 처리 (이동, 충돌, 연출, Destory 등)
 	virtual void Die();             
