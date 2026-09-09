@@ -12,6 +12,19 @@ AWeaponBase::AWeaponBase()
 	StaticMeshComp->SetupAttachment(SceneRoot);
 }
 
+void AWeaponBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+}
+
+void AWeaponBase::Interact(AActor* Interactor)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Weapon Interact"));
+
+	Destroy();
+}
+
 void AWeaponBase::Attack()
 {
 

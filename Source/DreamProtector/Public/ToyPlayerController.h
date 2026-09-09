@@ -16,7 +16,7 @@ class DREAMPROTECTOR_API AToyPlayerController : public APlayerController
 public:
 	AToyPlayerController();
 
-	//
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputMappingContext* InputMappingContext;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -34,5 +34,10 @@ protected:
 
 private:
 	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+	void StartJump();
+	void StopJump();
+	void StartSprint();
+	void StopSprint();
 	
 };

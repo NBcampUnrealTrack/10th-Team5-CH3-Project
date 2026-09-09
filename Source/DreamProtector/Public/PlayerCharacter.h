@@ -4,6 +4,11 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
 
+
+class USpringArmComponent;
+class UCameraComponent;
+class AWeaponBase;
+
 UCLASS()
 class DREAMPROTECTOR_API APlayerCharacter : public ACharacter
 {
@@ -16,14 +21,33 @@ public:
 protected:
 	
 	virtual void BeginPlay() override;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USpringArmComponent* SpringArm;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	UCameraComponent* Camera;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float WalkSpeed = 500.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float SprintSpeed = 800.0f;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	AWeaponBase* CurrentWeapon;
+
 
 public:	
 	
 	virtual void Tick(float DeltaTime) override;
-
-	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	void Move(const FVector2D& MovementVector);
+	void StartSprint();
+	void StopSprint();
+
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void TryInteract();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void Attack();
 
 };
