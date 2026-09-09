@@ -39,8 +39,6 @@ protected:
 	int32 CurrentMana;
 
  
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	AWeaponBase* CurrentWeapon;
 
