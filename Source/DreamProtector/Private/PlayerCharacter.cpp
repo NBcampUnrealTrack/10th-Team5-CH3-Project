@@ -107,26 +107,28 @@ void APlayerCharacter::TryInteract()
 	//자기 자신에게 충돌하지 않도록
 	Params.AddIgnoredActor(this);
 
-	//Start ~ End 사이에 충돌한 Actor 탐색
-	bool bHit = GetWorld()->LineTraceSingleByChannel(
+	// 반지름 100의 구를 Start ~ End까지 이동시켜 충돌한 Actor 탐색
+	bool bHit = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		Start,
 		End,
+		FQuat::Identity,
 		ECC_Visibility,
+		FCollisionShape::MakeSphere(100.0f),
 		Params
 	);
 
-	//테스트용 거리 확인
-	DrawDebugLine(
+	// 테스트용 상호작용 범위 확인
+	DrawDebugSphere(
 		GetWorld(),
 		Start,
-		End,
+		100.0f,
+		16,
 		FColor::Red,
 		false,
-		2.0f,
-		0,
 		2.0f
 	);
+
 
 	// 감지했다면
 	if (bHit)
