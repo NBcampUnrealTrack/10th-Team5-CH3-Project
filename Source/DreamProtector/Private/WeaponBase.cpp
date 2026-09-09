@@ -12,6 +12,11 @@ AWeaponBase::AWeaponBase()
 	StaticMeshComp->SetupAttachment(SceneRoot);
 }
 
+void AWeaponBase::Interact(AActor* Interactor)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Weapon Interact"));
+}
+
 void AWeaponBase::Attack()
 {
 

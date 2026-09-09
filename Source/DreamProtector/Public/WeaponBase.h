@@ -2,15 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interactable.h"
 #include "WeaponBase.generated.h"
 
+
 UCLASS()
-class DREAMPROTECTOR_API AWeaponBase : public AActor
+class DREAMPROTECTOR_API AWeaponBase : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 	
 public:	
 	AWeaponBase();
+
+	//
+	virtual void Interact(AActor* Interactor) override;
 
 protected:
 	//공격 데미지 변수
