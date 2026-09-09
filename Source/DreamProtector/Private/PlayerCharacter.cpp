@@ -1,6 +1,9 @@
 #include "PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Interactable.h"
+#include "WeaponBase.h"
+#include "StaffBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFrameWork/SpringArmComponent.h"
 
@@ -24,10 +27,20 @@ APlayerCharacter::APlayerCharacter()
 }
 
 
+
+//임시 테스트용
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	AActor* FoundWeapon = UGameplayStatics::GetActorOfClass(GetWorld(), AStaffBase::StaticClass());
+
+	CurrentWeapon = Cast<AWeaponBase>(FoundWeapon);
+
+	if (CurrentWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Weapon Found: %s"), *CurrentWeapon->GetName());
+	}
 }
 
 
@@ -61,6 +74,23 @@ void APlayerCharacter::StopSprint()
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
 }
+
+void APlayerCharacter::Attack()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Player Attack Called"));
+
+	if (CurrentWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Attack??"));
+		CurrentWeapon->Attack();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon is nullptr"));
+	}
+}
+
+
 
 void APlayerCharacter::TryInteract()
 {

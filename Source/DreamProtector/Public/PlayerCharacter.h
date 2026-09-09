@@ -7,6 +7,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class AWeaponBase;
 
 UCLASS()
 class DREAMPROTECTOR_API APlayerCharacter : public ACharacter
@@ -30,6 +31,10 @@ protected:
 	float SprintSpeed = 800.0f;
 
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	AWeaponBase* CurrentWeapon;
+
+
 public:	
 	
 	virtual void Tick(float DeltaTime) override;
@@ -41,5 +46,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void Attack();
 
 };
