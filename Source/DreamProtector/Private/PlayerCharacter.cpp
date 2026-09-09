@@ -33,6 +33,9 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	CurrentHP = MaxHP;
+	CurrentMana = MaxMana;
+	
 	AActor* FoundWeapon = UGameplayStatics::GetActorOfClass(GetWorld(), AStaffBase::StaticClass());
 
 	CurrentWeapon = Cast<AWeaponBase>(FoundWeapon);
@@ -148,4 +151,37 @@ void APlayerCharacter::TryInteract()
 			}
 		}
 	}
+}
+//게터 현재 체력
+float APlayerCharacter::GetCurrentHP()const
+{
+	return CurrentHP;
+}
+//게터 최대 체력
+float APlayerCharacter::GetMaxHP()const
+{
+	return MaxHP;
+}
+//게터 현재마나
+float APlayerCharacter::GetCurrentMana()const
+{
+	return CurrentMana;
+}
+//게터 최대마나
+float APlayerCharacter::GetMaxMana()const
+{
+	return MaxMana;
+}
+//마나 소모함수
+bool APlayerCharacter::ConsumeMana()
+{
+	//현재 마나가 0이하라면
+	if (CurrentMana <= 0)
+	{
+		//함수실행되지않음
+		return false;
+	}
+	//현재마나가0이상이면 마나1소모
+	CurrentMana--;
+	return true;
 }
