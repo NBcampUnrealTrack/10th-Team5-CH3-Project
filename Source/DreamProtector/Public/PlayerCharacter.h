@@ -39,4 +39,7 @@ public:
 	void StartSprint();
 	void StopSprint();
 
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void TryInteract();
+
 };

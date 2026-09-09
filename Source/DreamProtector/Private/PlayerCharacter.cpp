@@ -1,5 +1,6 @@
 #include "PlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Interactable.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFrameWork/SpringArmComponent.h"
 
@@ -59,4 +60,62 @@ void APlayerCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
+}
+
+void APlayerCharacter::TryInteract()
+{
+	//플레이어 위치에서 정면 300거리까지 상호작용 탐색
+	FVector Start = GetActorLocation();
+	FVector End = Start + GetActorForwardVector() * 300.0f;
+
+	//Line Trace 결과 저장
+	FHitResult HitResult;
+
+	//조건 설정
+	FCollisionQueryParams Params;
+
+	//자기 자신에게 충돌하지 않도록
+	Params.AddIgnoredActor(this);
+
+	//Start ~ End 사이에 충돌한 Actor 탐색
+	bool bHit = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		ECC_Visibility,
+		Params
+	);
+
+	//테스트용 거리 확인
+	DrawDebugLine(
+		GetWorld(),
+		Start,
+		End,
+		FColor::Red,
+		false,
+		2.0f,
+		0,
+		2.0f
+	);
+
+	// 감지했다면
+	if (bHit)
+	{
+		//Actor 가져오기
+		AActor* HitActor = HitResult.GetActor();
+
+		//Actor가 존재하고 IInteractable이 있다면
+		if (HitActor && HitActor->Implements<UInteractable>())
+		{
+			//캐스팅
+			IInteractable* Interactable = Cast<IInteractable>(HitActor);
+
+			//성공했다면 상호작용
+			if (Interactable)
+			{
+				//현재 Player
+				Interactable->Interact(this);
+			}
+		}
+	}
 }
