@@ -38,6 +38,11 @@ protected:
 	int32 MaxMana = 30;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mana")
 	int32 CurrentMana;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mana")
+	bool bIsReloading = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mana")
+	float ReloadTime = 2.0f;
+	FTimerHandle ReloadTimerHandle;
 
  
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -60,7 +65,8 @@ public:
 	float GetMaxMana()const;
 	float GetCurrentMana()const;
 	bool ConsumeMana();
-
+	void ReloadMana();
+	void FinishReload();
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
 

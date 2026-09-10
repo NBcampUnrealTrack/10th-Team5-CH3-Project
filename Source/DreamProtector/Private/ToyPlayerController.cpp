@@ -23,7 +23,8 @@ AToyPlayerController::AToyPlayerController()
 	LookAction(nullptr),
 	SprintAction(nullptr),
 	AttackAction(nullptr),
-	InteractionAction(nullptr)
+	InteraAtionAction(nullptr),
+	ReloadAction(nullptr)
 {
 
 }
@@ -131,6 +132,16 @@ void AToyPlayerController::SetupInputComponent()
 				&AToyPlayerController::Attack
 			);
 		}
+
+		if (ReloadAction)
+		{
+			EnhancedInputComponent->BindAction(
+				ReloadAction,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::Reload
+			);
+		}
 	}
 }
 
@@ -195,9 +206,15 @@ void AToyPlayerController::Attack()
 	if (APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn()))
 	{
-		if (PlayerCharacter->ConsumeMana())
-		{
-			PlayerCharacter->Attack();
-		}
+		PlayerCharacter->Attack();
+	}
+}
+
+void AToyPlayerController::Reload()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->ReloadMana();
 	}
 }
