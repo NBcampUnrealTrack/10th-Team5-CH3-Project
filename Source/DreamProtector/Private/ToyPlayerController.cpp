@@ -12,6 +12,8 @@
 //Controller가 현재 조종 중인 Pawn을 PlayerCharacter로 변환해서 Move()함수를 호출하기 위해 사용함
 #include "PlayerCharacter.h"
 
+
+
 AToyPlayerController::AToyPlayerController()
     //Input관련 포인터들을 처음에는 아무것도 가리키지 않는 상태로 초기화함.
     //이후에 BluePrint에서 실제 IMC와Input Action을 지정함
@@ -19,7 +21,9 @@ AToyPlayerController::AToyPlayerController()
 	MoveAction(nullptr),
 	JumpAction(nullptr),
 	LookAction(nullptr),
-	SprintAction(nullptr)
+	SprintAction(nullptr),
+	AttackAction(nullptr),
+	InteractionAction(nullptr)
 {
 
 }
@@ -67,6 +71,66 @@ void AToyPlayerController::SetupInputComponent()
 				&AToyPlayerController::Move
 			);
 		}
+
+		if (LookAction)
+		{
+			EnhancedInputComponent->BindAction(
+				LookAction,
+				ETriggerEvent::Triggered,
+				this,
+				&AToyPlayerController::Look
+			);
+		}
+
+		if (JumpAction)
+		{
+			EnhancedInputComponent->BindAction(
+				JumpAction,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::StartJump
+			);
+		}
+
+		if (JumpAction)
+		{
+			EnhancedInputComponent->BindAction(
+				JumpAction,
+				ETriggerEvent::Completed,
+				this,
+				&AToyPlayerController::StopJump
+			);
+		}
+
+		if (SprintAction)
+		{
+			EnhancedInputComponent->BindAction(
+				SprintAction,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::StartSprint
+			);
+		}
+
+		if (SprintAction)
+		{
+			EnhancedInputComponent->BindAction(
+				SprintAction,
+				ETriggerEvent::Completed,
+				this,
+				&AToyPlayerController::StopSprint
+			);
+		}
+
+		if (AttackAction)
+		{
+			EnhancedInputComponent->BindAction(
+				AttackAction,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::Attack
+			);
+		}
 	}
 }
 
@@ -79,5 +143,61 @@ void AToyPlayerController::Move(const FInputActionValue& Value)
 		Cast<APlayerCharacter>(GetPawn()))
 	{
 		PlayerCharater->Move(MovementVector);
+	}
+}
+//카메라 시점회전
+void AToyPlayerController::Look(const FInputActionValue& Value)
+{
+	const FVector2D LookVector = Value.Get<FVector2D>();
+
+	AddYawInput(LookVector.X);
+	AddPitchInput(LookVector.Y);
+}
+//점프키를 눌럿을떄 점프
+void AToyPlayerController::StartJump()
+{
+	if (APlayerCharacter* PlayerCharacter
+		= Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->Jump();
+	}
+}
+//점프키를뗏을때 점프 함수
+void AToyPlayerController::StopJump()
+{
+	if (APlayerCharacter* PlayerCharacter
+		= Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->StopJumping();
+	}
+}
+//스프린트 키를 눌럿을때 함수
+void AToyPlayerController::StartSprint()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->StartSprint();
+	}
+}
+//스프린트키를 뗏을때 함수
+void AToyPlayerController::StopSprint()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->StopSprint();
+	}
+}
+//
+void AToyPlayerController::Attack()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		if (PlayerCharacter->ConsumeMana())
+		{
+			PlayerCharacter->Attack();
+		}
 	}
 }

@@ -1,16 +1,24 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Interactable.h"
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
+
 UCLASS()
-class DREAMPROTECTOR_API AWeaponBase : public AActor
+class DREAMPROTECTOR_API AWeaponBase : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 	
 public:	
 	AWeaponBase();
+
+	
+	virtual void Interact(AActor* Interactor) override;
+
+	//Attack 가상함수
+	virtual void Attack();
 
 protected:
 	//공격 데미지 변수
@@ -30,8 +38,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* StaticMeshComp;
 
-	//Attack 가상함수
-	virtual void Attack();
-
+	virtual void BeginPlay() override;
 
 };
