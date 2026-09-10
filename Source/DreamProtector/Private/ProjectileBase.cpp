@@ -42,7 +42,7 @@ void AProjectileBase::OnOverlapBegin(
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Overlap: %s"), *OtherActor->GetName());
+	//UE_LOG(LogTemp, Warning, TEXT("Overlap: %s"), *OtherActor->GetName());
 
 }
 
