@@ -8,6 +8,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UUserWidget;
 UCLASS()
 class DREAMPROTECTOR_API AToyPlayerController : public APlayerController
 {
@@ -33,6 +34,10 @@ public:
 	UInputAction* InteraAtionAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* ReloadAction;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+	UPROPERTY()
+	UUserWidget* HUDWidget;
 
 protected:
 	virtual void BeginPlay() override;
