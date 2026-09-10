@@ -9,7 +9,12 @@ class USpringArmComponent;
 class UCameraComponent;
 class AWeaponBase;
 class UInventoryComponent;
-
+//딜리게이트 2개의 값을 전달하겠다는 매크로
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FonManaChanged,
+	int32, CurrentMana,
+	int32, MaxMana
+);
 UCLASS()
 class DREAMPROTECTOR_API APlayerCharacter : public ACharacter
 {
@@ -18,6 +23,10 @@ class DREAMPROTECTOR_API APlayerCharacter : public ACharacter
 public:
 	
 	APlayerCharacter();
+	//블루프린트에서 이벤트를 연결할수있게해줌
+	//위 매크로에서 만든 딜리게이트타입의 변수
+	UPROPERTY(BlueprintAssignable, Category = "Mana")
+	FonManaChanged OnManaChanged;
 
 protected:
 	
@@ -69,7 +78,6 @@ public:
 	void FinishReload();
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
-
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void Attack();
 
