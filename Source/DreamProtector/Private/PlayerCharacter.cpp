@@ -3,6 +3,7 @@
 #include "Interactable.h"
 #include "WeaponBase.h"
 #include "StaffBase.h"
+#include "InventoryComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFrameWork/SpringArmComponent.h"
@@ -22,6 +23,9 @@ APlayerCharacter::APlayerCharacter()
 	Camera->SetupAttachment(SpringArm);
 	Camera->bUsePawnControlRotation = false;
 
+
+	//인벤토리 컴포넌트 추가
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
@@ -80,11 +84,9 @@ void APlayerCharacter::StopSprint()
 
 void APlayerCharacter::Attack()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Player Attack Called"));
 
 	if (CurrentWeapon)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Attack??"));
 		CurrentWeapon->Attack();
 	}
 	else

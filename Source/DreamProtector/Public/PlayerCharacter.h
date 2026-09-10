@@ -8,6 +8,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class AWeaponBase;
+class UInventoryComponent;
 
 UCLASS()
 class DREAMPROTECTOR_API APlayerCharacter : public ACharacter
@@ -41,6 +42,8 @@ protected:
  
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	AWeaponBase* CurrentWeapon;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	UInventoryComponent* InventoryComponent;
 
 
 public:	
