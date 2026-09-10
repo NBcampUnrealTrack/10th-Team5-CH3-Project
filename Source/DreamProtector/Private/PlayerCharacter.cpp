@@ -81,79 +81,92 @@ void APlayerCharacter::StopSprint()
 void APlayerCharacter::Attack()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Player Attack Called"));
-
+	//리로드 중이면 공격 불가능
+	if (bIsReloading)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cannot Attack: Reloading"));
+		return;
+	}
+	// 무기가 없다면 공격불가능
+	if (!CurrentWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon is nullptr"));
+		return;
+	}
+	// 현재 마나가 없다면 공격불가능
+	if (!ConsumeMana())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not Enough Mana"));
+		return;
+	}
 	if (CurrentWeapon)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Attack??"));
 		CurrentWeapon->Attack();
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon is nullptr"));
-	}
 }
 
 
 
-void APlayerCharacter::TryInteract()
-{
-	//플레이어 위치에서 정면 300거리까지 상호작용 탐색
-	FVector Start = GetActorLocation();
-	FVector End = Start + GetActorForwardVector() * 300.0f;
-
-	//Line Trace 결과 저장
-	FHitResult HitResult;
-
-	//조건 설정
-	FCollisionQueryParams Params;
-
-	//자기 자신에게 충돌하지 않도록
-	Params.AddIgnoredActor(this);
-
-	// 반지름 100의 구를 Start ~ End까지 이동시켜 충돌한 Actor 탐색
-	bool bHit = GetWorld()->SweepSingleByChannel(
-		HitResult,
-		Start,
-		End,
-		FQuat::Identity,
-		ECC_Visibility,
-		FCollisionShape::MakeSphere(100.0f),
-		Params
-	);
-
-	// 테스트용 상호작용 범위 확인
-	DrawDebugSphere(
-		GetWorld(),
-		Start,
-		100.0f,
-		16,
-		FColor::Red,
-		false,
-		2.0f
-	);
-
-
-	// 감지했다면
-	if (bHit)
+	void APlayerCharacter::TryInteract()
 	{
-		//Actor 가져오기
-		AActor* HitActor = HitResult.GetActor();
+		//플레이어 위치에서 정면 300거리까지 상호작용 탐색
+		FVector Start = GetActorLocation();
+		FVector End = Start + GetActorForwardVector() * 300.0f;
 
-		//Actor가 존재하고 IInteractable이 있다면
-		if (HitActor && HitActor->Implements<UInteractable>())
+		//Line Trace 결과 저장
+		FHitResult HitResult;
+
+		//조건 설정
+		FCollisionQueryParams Params;
+
+		//자기 자신에게 충돌하지 않도록
+		Params.AddIgnoredActor(this);
+
+		// 반지름 100의 구를 Start ~ End까지 이동시켜 충돌한 Actor 탐색
+		bool bHit = GetWorld()->SweepSingleByChannel(
+			HitResult,
+			Start,
+			End,
+			FQuat::Identity,
+			ECC_Visibility,
+			FCollisionShape::MakeSphere(100.0f),
+			Params
+		);
+
+		// 테스트용 상호작용 범위 확인
+		DrawDebugSphere(
+			GetWorld(),
+			Start,
+			100.0f,
+			16,
+			FColor::Red,
+			false,
+			2.0f
+		);
+
+
+		// 감지했다면
+		if (bHit)
 		{
-			//캐스팅
-			IInteractable* Interactable = Cast<IInteractable>(HitActor);
+			//Actor 가져오기
+			AActor* HitActor = HitResult.GetActor();
 
-			//성공했다면 상호작용
-			if (Interactable)
+			//Actor가 존재하고 IInteractable이 있다면
+			if (HitActor && HitActor->Implements<UInteractable>())
 			{
-				//현재 Player
-				Interactable->Interact(this);
+				//캐스팅
+				IInteractable* Interactable = Cast<IInteractable>(HitActor);
+
+				//성공했다면 상호작용
+				if (Interactable)
+				{
+					//현재 Player
+					Interactable->Interact(this);
+				}
 			}
 		}
 	}
-}
 //게터 현재 체력
 float APlayerCharacter::GetCurrentHP()const
 {
@@ -181,9 +194,47 @@ bool APlayerCharacter::ConsumeMana()
 	if (CurrentMana <= 0)
 	{
 		//함수실행되지않음
+		UE_LOG(LogTemp, Warning, TEXT("Mana Emty!"));
+
 		return false;
 	}
 	//현재마나가0이상이면 마나1소모
 	CurrentMana--;
+	UE_LOG(LogTemp, Warning, TEXT("Current Mana: %d / %d"),CurrentMana, MaxMana);
+
 	return true;
+}
+// 현재  장전이 가능한지 확인
+void APlayerCharacter::ReloadMana()
+{
+	// 장전하고잇지않다면
+	if (bIsReloading)
+	{
+		return;
+	}
+	//현재 마나가 최대마나보다 크거나 같다면
+	if (CurrentMana >= MaxMana)
+	{
+		return;
+	}
+	//장전상태 트루로 변경
+	bIsReloading = true;
+	UE_LOG(LogTemp, Warning, TEXT("Reload Start"));
+
+	//2초후에 장정함수 실행
+	GetWorldTimerManager().SetTimer(
+		ReloadTimerHandle,
+		this,
+		&APlayerCharacter::FinishReload,
+		ReloadTime,
+		false
+	);
+}
+//실제 장전 함수 
+void APlayerCharacter::FinishReload()
+{
+	CurrentMana = MaxMana;
+	bIsReloading = false;
+
+	UE_LOG(LogTemp, Warning, TEXT("Reload Complete! Mana: %d / &d"), CurrentMana, MaxMana);
 }

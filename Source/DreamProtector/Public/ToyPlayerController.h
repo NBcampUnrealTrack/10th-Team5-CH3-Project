@@ -30,7 +30,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* AttackAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	UInputAction* InteractionAction;
+	UInputAction* InteraAtionAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* ReloadAction;
 
 protected:
 	virtual void BeginPlay() override;
@@ -44,5 +46,5 @@ private:
 	void StartSprint();
 	void StopSprint();
 	void Attack();
-	
+	void Reload();
 };
