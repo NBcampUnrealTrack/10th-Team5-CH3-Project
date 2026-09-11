@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "ToyPlayerController.generated.h"
 
@@ -33,18 +34,37 @@ public:
 	UInputAction* InteraAtionAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* ReloadAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* InventoryAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> InventoryWidgetClass;
+
+	UPROPERTY()
+	UUserWidget* InventoryWidget;
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
 private:
+	UFUNCTION()
 	void Move(const FInputActionValue& Value);
+	UFUNCTION()
 	void Look(const FInputActionValue& Value);
+	UFUNCTION()
 	void StartJump();
+	UFUNCTION()
 	void StopJump();
+	UFUNCTION()
 	void StartSprint();
+	UFUNCTION()
 	void StopSprint();
+	UFUNCTION()
 	void Attack();
+	UFUNCTION()
 	void Reload();
+
+	UFUNCTION()
+	void Inventory();
 };

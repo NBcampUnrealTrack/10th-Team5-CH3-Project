@@ -14,6 +14,8 @@
 
 
 
+
+
 AToyPlayerController::AToyPlayerController()
     //Input관련 포인터들을 처음에는 아무것도 가리키지 않는 상태로 초기화함.
     //이후에 BluePrint에서 실제 IMC와Input Action을 지정함
@@ -24,9 +26,10 @@ AToyPlayerController::AToyPlayerController()
 	SprintAction(nullptr),
 	AttackAction(nullptr),
 	InteraAtionAction(nullptr),
-	ReloadAction(nullptr)
+	ReloadAction(nullptr),
+	InventoryAction(nullptr),
+	InventoryWidget(nullptr)
 {
-
 }
 
 // 게임이 시작되어 이 PlayerController가 활성화될 때 호출된다.
@@ -142,6 +145,15 @@ void AToyPlayerController::SetupInputComponent()
 				&AToyPlayerController::Reload
 			);
 		}
+		if (InventoryAction)
+		{
+			EnhancedInputComponent->BindAction(
+				InventoryAction,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::Inventory
+			);
+		}
 	}
 }
 
@@ -217,4 +229,38 @@ void AToyPlayerController::Reload()
 	{
 		PlayerCharacter->ReloadMana();
 	}
+}
+
+void AToyPlayerController::Inventory()
+{
+	if (!InventoryWidgetClass)
+	{
+		return;
+	}
+
+	//처음 한번 생성
+	if (!InventoryWidget)
+	{
+		InventoryWidget = CreateWidget<UUserWidget>(
+			this,
+			InventoryWidgetClass
+		);
+	}
+
+	if (!InventoryWidget)
+	{
+		return;
+	}
+
+	// 이미 열려 있으면 닫기
+	if (InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromParent();
+	}
+	// 닫혀 있으면 열기
+	else
+	{
+		InventoryWidget->AddToViewport();
+	}
+		
 }
