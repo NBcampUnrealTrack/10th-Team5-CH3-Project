@@ -13,6 +13,7 @@
 #include "PlayerCharacter.h"
 //블루프린트 위젯사용 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 
 
@@ -39,6 +40,10 @@ void AToyPlayerController::BeginPlay()
 {   //부모클래스인 APlayerController의 BeginPlay 먼저 실행
 	//부모가 기본적으로 해야하는 초기화 작업을 유지하기 위해 호출함
 	Super::BeginPlay();
+	//인풋 다시게임으로
+	UWidgetBlueprintLibrary::SetInputMode_GameOnly(this);
+	//마우스커서 안보이게하기
+	bShowMouseCursor = false;
 
 	//이 Controller와 연결된 로컬 플레이어를 가져온다. (로컬플레이어 = 게임을 직접 하는 사용자)
 	//Enhanced Input의 Input MappingContext를 관리하는 Subsystem이 LocalPlay에 있음.
