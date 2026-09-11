@@ -33,6 +33,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Monster|Damage")
 	void Attack();
 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Monster|Damage")
+	void Die();
+
 protected:
 
 	virtual void Attack_Implementation();
@@ -56,5 +59,5 @@ protected:
 	float AttackInterval = 1.5f;
 	// 사망 처리 (이동, 충돌, 연출, Destory 등)
 	UFUNCTION()
-	virtual void Die();             
+	virtual void Die_Implementation();             
 };

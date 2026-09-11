@@ -11,6 +11,9 @@ AFlyingRanged::AFlyingRanged()
 	GetCharacterMovement()->DefaultLandMovementMode = MOVE_Flying;
 	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
 	GetCharacterMovement()->GravityScale = 0.0f;
+
+	// 이동 방향이 아니라 직접 회전 제어할 거라 자동 회전 끔
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 void AFlyingRanged::BeginPlay()
@@ -58,6 +61,13 @@ void AFlyingRanged::MoveTowardsTarget()
 	FVector Direction = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 	// CharacterMovementComponent 로 이동 입력 적용
 	AddMovementInput(Direction, 1.0f);
+
+	// 몸은 항상 타겟을 바라보게 회전
+	FVector LookDirection = (Target->GetActorLocation() - GetActorLocation());
+	// 수평 회전
+	LookDirection.Z = 0.0f;
+	FRotator NewRotation = LookDirection.Rotation();
+	SetActorRotation(FMath::RInterpTo(GetActorRotation(), NewRotation, GetWorld()->GetDeltaSeconds(), 5.0f));
 }
 
 void AFlyingRanged::MaintainFlightHeight(float DeltaTime)
