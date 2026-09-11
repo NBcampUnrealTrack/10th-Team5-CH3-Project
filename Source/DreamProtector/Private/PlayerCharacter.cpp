@@ -206,6 +206,9 @@ bool APlayerCharacter::ConsumeMana()
 	CurrentMana--;
 	UE_LOG(LogTemp, Warning, TEXT("Current Mana: %d / %d"),CurrentMana, MaxMana);
 
+	//마나가 변경됫다고 알림
+	OnManaChanged.Broadcast(CurrentMana, MaxMana);
+
 	return true;
 }
 // 현재  장전이 가능한지 확인
@@ -225,7 +228,7 @@ void APlayerCharacter::ReloadMana()
 	bIsReloading = true;
 	UE_LOG(LogTemp, Warning, TEXT("Reload Start"));
 
-	//2초후에 장정함수 실행
+	//2초후에 장전함수 실행
 	GetWorldTimerManager().SetTimer(
 		ReloadTimerHandle,
 		this,
@@ -237,8 +240,12 @@ void APlayerCharacter::ReloadMana()
 //실제 장전 함수 
 void APlayerCharacter::FinishReload()
 {
+	//마나 완충
 	CurrentMana = MaxMana;
+	//장전상태 종료
 	bIsReloading = false;
+	//마나가 변경됫다는 알림
+	OnManaChanged.Broadcast(CurrentMana, MaxMana);
 
 	UE_LOG(LogTemp, Warning, TEXT("Reload Complete! Mana: %d / &d"), CurrentMana, MaxMana);
 }
