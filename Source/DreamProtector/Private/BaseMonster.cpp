@@ -1,6 +1,6 @@
 ﻿#include "BaseMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
-
+#include "MonsterAIController.h"
 
 ABaseMonster::ABaseMonster()
 {
@@ -11,6 +11,11 @@ ABaseMonster::ABaseMonster()
 	AttackDamage = 10.0f;
 	AttackInterval = 1.5f;
 	MoveSpeed = 300.0f;
+
+	// 해당 몬스터가 스폰될 때 방의할 AI 컨트롤러 지정
+	AIControllerClass = AMonsterAIController::StaticClass();
+	// 레벨에 미리 배치 OR 스폰하면 자동으로 AI가 빙의 설정
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void ABaseMonster::BeginPlay()   
@@ -46,6 +51,7 @@ void ABaseMonster::SetTarget(AActor* InTarget)
 
 void ABaseMonster::Attack_Implementation()
 {
+	UE_LOG(LogTemp, Error, TEXT("[BaseMonster] 부모의 빈 Attack_Implementation 호출됨! (이게 찍히면 AMelee가 오버라이드 못 하고 있는 것)"));
 	// 기본 공격 로직
 }
 // 데미지 받을 때 외부(공격한 쪽)에서 호출
