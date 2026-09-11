@@ -19,7 +19,6 @@ protected:
 
 	virtual void Attack() override;
 
-	void BeginPlay() override;
 
 	//ProjectileBase를 상속받은 클래스 종류 저장
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Staff")
