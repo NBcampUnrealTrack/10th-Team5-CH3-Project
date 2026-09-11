@@ -9,6 +9,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UUserWidget;
 UCLASS()
 class DREAMPROTECTOR_API AToyPlayerController : public APlayerController
 {
@@ -42,6 +43,11 @@ public:
 
 	UPROPERTY()
 	UUserWidget* InventoryWidget;
+  
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+	UPROPERTY()
+	UUserWidget* HUDWidget;
 
 protected:
 	virtual void BeginPlay() override;

@@ -11,6 +11,8 @@
 //APlayerCharacter를 사용하기 위해 필요함.
 //Controller가 현재 조종 중인 Pawn을 PlayerCharacter로 변환해서 Move()함수를 호출하기 위해 사용함
 #include "PlayerCharacter.h"
+//블루프린트 위젯사용 
+#include "Blueprint/UserWidget.h"
 
 
 
@@ -55,6 +57,17 @@ void AToyPlayerController::BeginPlay()
 				//두번째 인자인 0은 MappingContext에 우선순위.
 				Subsystem->AddMappingContext(InputMappingContext, 0);
 			}
+		}
+	}
+	//위젯 클래스가 지정되있다면
+	if (HUDWidgetClass)
+	{
+		//실제 HUD위젯 객체 생성
+		HUDWidget = CreateWidget<UUserWidget>(this, HUDWidgetClass);
+		if (HUDWidget)
+		{
+			// 생성한HUD를 화면에 표시
+			HUDWidget->AddToViewport();
 		}
 	}
 }
