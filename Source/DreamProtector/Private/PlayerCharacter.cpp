@@ -3,6 +3,7 @@
 #include "Interactable.h"
 #include "WeaponBase.h"
 #include "StaffBase.h"
+#include "InventoryComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFrameWork/SpringArmComponent.h"
@@ -12,23 +13,26 @@ APlayerCharacter::APlayerCharacter()
  	
 	PrimaryActorTick.bCanEverTick = true;
 
-	//½ºÇÁ¸µ¾Ï ÄÄÆ÷³ÍÆ® Ãß°¡
+	//ìŠ¤í”„ë§ì•” ì»´í¬ë„ŒíŠ¸ ì¶”ê°€
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 400.0f;
 	SpringArm->bUsePawnControlRotation = true;
-	//Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ®Ãß°¡
+	//ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ì¶”ê°€
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 	Camera->bUsePawnControlRotation = false;
 
+
+	//ì¸ë²¤í† ë¦¬ ì»´í¬ë„ŒíŠ¸ ì¶”ê°€
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
 
 
 
-//ÀÓ½Ã Å×½ºÆ®¿ë
+//ì„ì‹œ í…ŒìŠ¤íŠ¸ìš©
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -59,19 +63,19 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }
 
-//½ÇÁ¦ ÇÃ·¹ÀÌ¾î ÀÌµ¿ÇÔ¼ö
+//ì‹¤ì œ í”Œë ˆì´ì–´ ì´ë™í•¨ìˆ˜
 void APlayerCharacter::Move(const FVector2D& MovementVector)
 {
 	AddMovementInput(GetActorForwardVector(), MovementVector.X);
 	AddMovementInput(GetActorRightVector(), MovementVector.Y);
 }
 
-//½ÇÁ¦ ÇÃ·¹ÀÌ¾î ÀÌµ¿¼Óµµ ½ºÇÁ¸°Æ®°ªÀ¸·Î Áõ°¡
+//ì‹¤ì œ í”Œë ˆì´ì–´ ì´ë™ì†ë„ ìŠ¤í”„ë¦°íŠ¸ê°’ìœ¼ë¡œ ì¦ê°€
 void APlayerCharacter::StartSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
-//½ÇÁ¦ ÇÃ·¹ÀÌ¾î ÀÌµ¿¼Óµµ ´Ù½Ã Æò¼Ò´ë·Î °¨¼Ò
+//ì‹¤ì œ í”Œë ˆì´ì–´ ì´ë™ì†ë„ ë‹¤ì‹œ í‰ì†ŒëŒ€ë¡œ ê°ì†Œ
 void APlayerCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
@@ -81,109 +85,167 @@ void APlayerCharacter::StopSprint()
 void APlayerCharacter::Attack()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Player Attack Called"));
-
+	//ë¦¬ë¡œë“œ ì¤‘ì´ë©´ ê³µê²© ë¶ˆê°€ëŠ¥
+	if (bIsReloading)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cannot Attack: Reloading"));
+		return;
+	}
+	// ë¬´ê¸°ê°€ ì—†ë‹¤ë©´ ê³µê²©ë¶ˆê°€ëŠ¥
+	if (!CurrentWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon is nullptr"));
+		return;
+	}
+	// í˜„ì¬ ë§ˆë‚˜ê°€ ì—†ë‹¤ë©´ ê³µê²©ë¶ˆê°€ëŠ¥
+	if (!ConsumeMana())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not Enough Mana"));
+		return;
+	}
 	if (CurrentWeapon)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Attack??"));
 		CurrentWeapon->Attack();
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon is nullptr"));
-	}
 }
 
 
 
-void APlayerCharacter::TryInteract()
-{
-	//ÇÃ·¹ÀÌ¾î À§Ä¡¿¡¼­ Á¤¸é 300°Å¸®±îÁö »óÈ£ÀÛ¿ë Å½»ö
-	FVector Start = GetActorLocation();
-	FVector End = Start + GetActorForwardVector() * 300.0f;
-
-	//Line Trace °á°ú ÀúÀå
-	FHitResult HitResult;
-
-	//Á¶°Ç ¼³Á¤
-	FCollisionQueryParams Params;
-
-	//ÀÚ±â ÀÚ½Å¿¡°Ô Ãæµ¹ÇÏÁö ¾Êµµ·Ï
-	Params.AddIgnoredActor(this);
-
-	// ¹İÁö¸§ 100ÀÇ ±¸¸¦ Start ~ End±îÁö ÀÌµ¿½ÃÄÑ Ãæµ¹ÇÑ Actor Å½»ö
-	bool bHit = GetWorld()->SweepSingleByChannel(
-		HitResult,
-		Start,
-		End,
-		FQuat::Identity,
-		ECC_Visibility,
-		FCollisionShape::MakeSphere(100.0f),
-		Params
-	);
-
-	// Å×½ºÆ®¿ë »óÈ£ÀÛ¿ë ¹üÀ§ È®ÀÎ
-	DrawDebugSphere(
-		GetWorld(),
-		Start,
-		100.0f,
-		16,
-		FColor::Red,
-		false,
-		2.0f
-	);
-
-
-	// °¨ÁöÇß´Ù¸é
-	if (bHit)
+	void APlayerCharacter::TryInteract()
 	{
-		//Actor °¡Á®¿À±â
-		AActor* HitActor = HitResult.GetActor();
+		//í”Œë ˆì´ì–´ ìœ„ì¹˜ì—ì„œ ì •ë©´ 300ê±°ë¦¬ê¹Œì§€ ìƒí˜¸ì‘ìš© íƒìƒ‰
+		FVector Start = GetActorLocation();
+		FVector End = Start + GetActorForwardVector() * 300.0f;
 
-		//Actor°¡ Á¸ÀçÇÏ°í IInteractableÀÌ ÀÖ´Ù¸é
-		if (HitActor && HitActor->Implements<UInteractable>())
+		//Line Trace ê²°ê³¼ ì €ì¥
+		FHitResult HitResult;
+
+		//ì¡°ê±´ ì„¤ì •
+		FCollisionQueryParams Params;
+
+		//ìê¸° ìì‹ ì—ê²Œ ì¶©ëŒí•˜ì§€ ì•Šë„ë¡
+		Params.AddIgnoredActor(this);
+
+		// ë°˜ì§€ë¦„ 100ì˜ êµ¬ë¥¼ Start ~ Endê¹Œì§€ ì´ë™ì‹œì¼œ ì¶©ëŒí•œ Actor íƒìƒ‰
+		bool bHit = GetWorld()->SweepSingleByChannel(
+			HitResult,
+			Start,
+			End,
+			FQuat::Identity,
+			ECC_Visibility,
+			FCollisionShape::MakeSphere(100.0f),
+			Params
+		);
+
+		// í…ŒìŠ¤íŠ¸ìš© ìƒí˜¸ì‘ìš© ë²”ìœ„ í™•ì¸
+		DrawDebugSphere(
+			GetWorld(),
+			Start,
+			100.0f,
+			16,
+			FColor::Red,
+			false,
+			2.0f
+		);
+
+
+		// ê°ì§€í–ˆë‹¤ë©´
+		if (bHit)
 		{
-			//Ä³½ºÆÃ
-			IInteractable* Interactable = Cast<IInteractable>(HitActor);
+			//Actor ê°€ì ¸ì˜¤ê¸°
+			AActor* HitActor = HitResult.GetActor();
 
-			//¼º°øÇß´Ù¸é »óÈ£ÀÛ¿ë
-			if (Interactable)
+			//Actorê°€ ì¡´ì¬í•˜ê³  IInteractableì´ ìˆë‹¤ë©´
+			if (HitActor && HitActor->Implements<UInteractable>())
 			{
-				//ÇöÀç Player
-				Interactable->Interact(this);
+				//ìºìŠ¤íŒ…
+				IInteractable* Interactable = Cast<IInteractable>(HitActor);
+
+				//ì„±ê³µí–ˆë‹¤ë©´ ìƒí˜¸ì‘ìš©
+				if (Interactable)
+				{
+					//í˜„ì¬ Player
+					Interactable->Interact(this);
+				}
 			}
 		}
 	}
-}
-//°ÔÅÍ ÇöÀç Ã¼·Â
+//ê²Œí„° í˜„ì¬ ì²´ë ¥
 float APlayerCharacter::GetCurrentHP()const
 {
 	return CurrentHP;
 }
-//°ÔÅÍ ÃÖ´ë Ã¼·Â
+//ê²Œí„° ìµœëŒ€ ì²´ë ¥
 float APlayerCharacter::GetMaxHP()const
 {
 	return MaxHP;
 }
-//°ÔÅÍ ÇöÀç¸¶³ª
+//ê²Œí„° í˜„ì¬ë§ˆë‚˜
 float APlayerCharacter::GetCurrentMana()const
 {
 	return CurrentMana;
 }
-//°ÔÅÍ ÃÖ´ë¸¶³ª
+//ê²Œí„° ìµœëŒ€ë§ˆë‚˜
 float APlayerCharacter::GetMaxMana()const
 {
 	return MaxMana;
 }
-//¸¶³ª ¼Ò¸ğÇÔ¼ö
+//ë§ˆë‚˜ ì†Œëª¨í•¨ìˆ˜
 bool APlayerCharacter::ConsumeMana()
 {
-	//ÇöÀç ¸¶³ª°¡ 0ÀÌÇÏ¶ó¸é
+	//í˜„ì¬ ë§ˆë‚˜ê°€ 0ì´í•˜ë¼ë©´
 	if (CurrentMana <= 0)
 	{
-		//ÇÔ¼ö½ÇÇàµÇÁö¾ÊÀ½
+		//í•¨ìˆ˜ì‹¤í–‰ë˜ì§€ì•ŠìŒ
+		UE_LOG(LogTemp, Warning, TEXT("Mana Emty!"));
+
 		return false;
 	}
-	//ÇöÀç¸¶³ª°¡0ÀÌ»óÀÌ¸é ¸¶³ª1¼Ò¸ğ
+	//í˜„ì¬ë§ˆë‚˜ê°€0ì´ìƒì´ë©´ ë§ˆë‚˜1ì†Œëª¨
 	CurrentMana--;
+	UE_LOG(LogTemp, Warning, TEXT("Current Mana: %d / %d"),CurrentMana, MaxMana);
+
+	//ë§ˆë‚˜ê°€ ë³€ê²½ë«ë‹¤ê³  ì•Œë¦¼
+	OnManaChanged.Broadcast(CurrentMana, MaxMana);
+
 	return true;
+}
+// í˜„ì¬  ì¥ì „ì´ ê°€ëŠ¥í•œì§€ í™•ì¸
+void APlayerCharacter::ReloadMana()
+{
+	// ì¥ì „í•˜ê³ ì‡ì§€ì•Šë‹¤ë©´
+	if (bIsReloading)
+	{
+		return;
+	}
+	//í˜„ì¬ ë§ˆë‚˜ê°€ ìµœëŒ€ë§ˆë‚˜ë³´ë‹¤ í¬ê±°ë‚˜ ê°™ë‹¤ë©´
+	if (CurrentMana >= MaxMana)
+	{
+		return;
+	}
+	//ì¥ì „ìƒíƒœ íŠ¸ë£¨ë¡œ ë³€ê²½
+	bIsReloading = true;
+	UE_LOG(LogTemp, Warning, TEXT("Reload Start"));
+
+	//2ì´ˆí›„ì— ì¥ì „í•¨ìˆ˜ ì‹¤í–‰
+	GetWorldTimerManager().SetTimer(
+		ReloadTimerHandle,
+		this,
+		&APlayerCharacter::FinishReload,
+		ReloadTime,
+		false
+	);
+}
+//ì‹¤ì œ ì¥ì „ í•¨ìˆ˜ 
+void APlayerCharacter::FinishReload()
+{
+	//ë§ˆë‚˜ ì™„ì¶©
+	CurrentMana = MaxMana;
+	//ì¥ì „ìƒíƒœ ì¢…ë£Œ
+	bIsReloading = false;
+	//ë§ˆë‚˜ê°€ ë³€ê²½ë«ë‹¤ëŠ” ì•Œë¦¼
+	OnManaChanged.Broadcast(CurrentMana, MaxMana);
+
+	UE_LOG(LogTemp, Warning, TEXT("Reload Complete! Mana: %d / &d"), CurrentMana, MaxMana);
 }

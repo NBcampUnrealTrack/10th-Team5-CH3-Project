@@ -1,13 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interactable.h"
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
 
 UCLASS()
-class DREAMPROTECTOR_API AWeaponBase : public AActor, public IInteractable
+class DREAMPROTECTOR_API AWeaponBase : public AActor
 {
 	GENERATED_BODY()
 	
@@ -15,7 +14,6 @@ public:
 	AWeaponBase();
 
 	
-	virtual void Interact(AActor* Interactor) override;
 
 	//Attack 가상함수
 	virtual void Attack();
