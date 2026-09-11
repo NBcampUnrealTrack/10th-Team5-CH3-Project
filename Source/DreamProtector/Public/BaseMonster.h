@@ -30,10 +30,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
 	virtual void TakeDamage(float DamageAmount);
 
-protected:
-
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Monster|Damage")
 	void Attack();
+
+protected:
+
+	virtual void Attack_Implementation();
 	// 최대 체력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
 	float MaxHealth = 50.0f;
@@ -51,7 +53,7 @@ protected:
 	TObjectPtr<AActor> Target;      
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
-	float AttackInterval;
+	float AttackInterval = 1.5f;
 	// 사망 처리 (이동, 충돌, 연출, Destory 등)
 	UFUNCTION()
 	virtual void Die();             
