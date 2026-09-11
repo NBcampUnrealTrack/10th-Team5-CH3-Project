@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "ItemBase.generated.h"
 
+
 UCLASS()
 class DREAMPROTECTOR_API AItemBase : public AActor, public IInteractable
 {
@@ -21,4 +22,7 @@ protected:
 
   UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
   UStaticMeshComponent* StaticMeshComp;
+
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+  FName ItemKey;
 };

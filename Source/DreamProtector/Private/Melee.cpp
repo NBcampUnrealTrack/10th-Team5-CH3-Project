@@ -1,4 +1,4 @@
-#include "Melee.h"
+ï»¿#include "Melee.h"
 #include "Kismet/GameplayStatics.h"
 
 AMelee::AMelee()
@@ -6,26 +6,55 @@ AMelee::AMelee()
    AttackCollision = CreateDefaultSubobject<USphereComponent>(TEXT("AttackCollision"));
    AttackCollision->SetupAttachment(RootComponent);
    AttackCollision->SetSphereRadius(100.0f);
-   //ÀÌ ÄÄÆ÷³ÍÆ®´Â Ãæµ¹·Î ¹°¸® ¹ÝÀÀÀº ÇÏÁö ¾Ê°í, Ãæµ¹/°ãÄ§ ¿©ºÎ¸¦ °Ë»ö(Query)ÇÏ´Â ¿ëµµ·Î¸¸ »ç¿ëÇÏ°Ú´Ù
+   //ì´ ì»´í¬ë„ŒíŠ¸ëŠ” ì¶©ëŒë¡œ ë¬¼ë¦¬ ë°˜ì‘ì€ í•˜ì§€ ì•Šê³ , ì¶©ëŒ/ê²¹ì¹¨ ì—¬ë¶€ë¥¼ ê²€ìƒ‰(Query)í•˜ëŠ” ìš©ë„ë¡œë§Œ ì‚¬ìš©í•˜ê² ë‹¤
    AttackCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-   //¸ðµç Ã¤³ÎÀÇ Ãæµ¹ ¹ÝÀÀÀ» ¹«½ÃÇÏµµ·Ï ÃÊ±âÈ­
+   //ëª¨ë“  ì±„ë„ì˜ ì¶©ëŒ ë°˜ì‘ì„ ë¬´ì‹œí•˜ë„ë¡ ì´ˆê¸°í™”
    AttackCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
-   //Pawn Ã¤³Î¿¡ ´ëÇØ¼­¸¸ Overlap ÆÇÁ¤À» °®°Ô ¸¸µç´Ù.
+   //Pawn ì±„ë„ì— ëŒ€í•´ì„œë§Œ Overlap íŒì •ì„ ê°–ê²Œ ë§Œë“ ë‹¤.
    AttackCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
    AttackCollision->SetGenerateOverlapEvents(true);
 }
 
+bool AMelee::IsTargetInMeleeRange() const
+{
+    // ABaseMonsterì— ìžˆëŠ” Target ë©¤ë²„ ë³€ìˆ˜ ì‚¬ìš©
+    if (!Target) return false;
+
+    const float DistanceToTarget = GetDistanceTo(Target);
+    const float MeleeRange = AttackCollision->GetScaledSphereRadius();
+
+    return DistanceToTarget <= MeleeRange;
+}
+
+bool AMelee::CanAttack() const
+{
+    // ABaseMonsterì— ìžˆëŠ” AttackInterval ìž¬ì‚¬ìš©
+    //return GetWorld()->GetTimeSeconds() - LastAttackTime >= AttackInterval;
+    bool bResult = GetWorld()->GetTimeSeconds() - LastAttackTime >= AttackInterval;
+    UE_LOG(LogTemp, Warning, TEXT("[Melee] CanAttack ì²´í¬: í˜„ìž¬ì‹œê°=%f, LastAttackTime=%f, AttackInterval=%f, ê²°ê³¼=%s"),
+        GetWorld()->GetTimeSeconds(), LastAttackTime, AttackInterval, bResult ? TEXT("true") : TEXT("false"));
+    return bResult;
+}
+
 void AMelee::Attack_Implementation()
 {
+    UE_LOG(LogTemp, Warning, TEXT("[Melee] Attack_Implementation í˜¸ì¶œë¨! í˜„ìž¬ ì‹œê°: %f"), GetWorld()->GetTimeSeconds());
+
+    // ì¿¨íƒ€ìž„ ê°±ì‹ 
+    LastAttackTime = GetWorld()->GetTimeSeconds();
+
     TArray<AActor*> OverlappingActors;
     AttackCollision->GetOverlappingActors(OverlappingActors);
+
+    UE_LOG(LogTemp, Warning, TEXT("[Melee] ì˜¤ë²„ëž©ëœ ì•¡í„° ìˆ˜: %d"), OverlappingActors.Num());
+
     for (AActor* Actor : OverlappingActors)
     {
         if (Actor == this)
         {
             continue;
         }
-        //// ÇÃ·¹ÀÌ¾î ¾×ÅÍ¿¡ "Player" ÅÂ±×°¡ ÀÖ¾î¾ß °ø°ÝÀÌ Àû¿ëµË´Ï´Ù.
+        //// í”Œë ˆì´ì–´ ì•¡í„°ì— "Player" íƒœê·¸ê°€ ìžˆì–´ì•¼ ê³µê²©ì´ ì ìš©ë©ë‹ˆë‹¤.
         if (!Actor->ActorHasTag(TEXT("Player")))
         {
             continue;
@@ -34,3 +63,5 @@ void AMelee::Attack_Implementation()
         UGameplayStatics::ApplyDamage(Actor,AttackDamage,nullptr,this,UDamageType::StaticClass());
     }
 }
+
+
