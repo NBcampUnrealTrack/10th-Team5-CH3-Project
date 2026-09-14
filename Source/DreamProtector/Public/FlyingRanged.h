@@ -44,6 +44,8 @@ protected:
 	// 진행 방향에 장애물 있는지 라이트레이스로 확인
 	bool CheckObstacleAhead();
 
+	float BaseGroundZ = 0.0f;
+
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
 	// 공격 사거리 

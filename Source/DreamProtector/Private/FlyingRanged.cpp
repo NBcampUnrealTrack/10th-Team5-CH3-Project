@@ -21,6 +21,9 @@ void AFlyingRanged::BeginPlay()
 	// HP / Speed 초기화 
 	Super::BeginPlay();
 
+	// 스폰 시점의 원래 높이(바닥 기준) 저장
+	BaseGroundZ = GetActorLocation().Z;
+
 	// 스폰 위치 기준 지정된 높이만큼 위로 보정
 	FVector StartLocation = GetActorLocation();
 	StartLocation.Z += FlyHeight;
@@ -75,7 +78,7 @@ void AFlyingRanged::MaintainFlightHeight(float DeltaTime)
 	// 현재 위치 가져오기
 	FVector CurrentLocation = GetActorLocation();
 	// 지형 높이 반영하려면 라인트레이스로 바닥 감지 후 보정?
-	const float DesiredZ = FlyHeight;
+	const float DesiredZ = BaseGroundZ + FlyHeight;
 
 	CurrentLocation.Z = FMath::FInterpTo(CurrentLocation.Z, DesiredZ, DeltaTime, 2.0f);
 	SetActorLocation(CurrentLocation);
