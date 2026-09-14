@@ -82,35 +82,102 @@ void APlayerCharacter::StopSprint()
 
 }
 
-void APlayerCharacter::Attack()
+void APlayerCharacter::StartAttack()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Player Attack Called"));
-	//리로드 중이면 공격 불가능
+
+	if (!bCanAttack)
+	{
+		return;
+	}
+
 	if (bIsReloading)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Cannot Attack: Reloading"));
 		return;
 	}
-	// 무기가 없다면 공격불가능
+
 	if (!CurrentWeapon)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CurrentWeapon is nullptr"));
 		return;
 	}
-	// 현재 마나가 없다면 공격불가능
+
+	// 첫 발 마나 소모
 	if (!ConsumeMana())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Not Enough Mana"));
 		return;
 	}
-	if (CurrentWeapon)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Attack??"));
-		CurrentWeapon->Attack();
-	}
+
+	// 단발 공격 시작
+	bIsAttacking = true;
+	bIsAutoFiring = false;
+
+	// 첫 발 발사
+	CurrentWeapon->Attack();
+
+	// 단발 쿨타임
+	bCanAttack = false;
+
+	GetWorldTimerManager().SetTimer(
+		SingleFireCooldownTimer,
+		[this]()
+		{
+			bCanAttack = true;
+		},
+		SingleFireCooldown,
+		false
+	);
+
+	// 일정 시간 이상 누르면 연사 시작
+	GetWorldTimerManager().SetTimer(
+		AutoFireStartTimerHandle,
+		this,
+		&APlayerCharacter::StartAutoFire,
+		AutoFireHoldTime,
+		false
+	);
 }
 
+void APlayerCharacter::StartAutoFire()
+{
+	bIsAutoFiring = true;
 
+	GetWorldTimerManager().SetTimer(
+		AutoFireTimerHandle,
+		this,
+		&APlayerCharacter::AutoAttack,
+		AttackInterval,
+		true
+	);
+}
+
+void APlayerCharacter::AutoAttack()
+{
+	if (!CurrentWeapon)
+	{
+		StopAttack();
+		return;
+	}
+
+	// 마나 없으면 연사 종료
+	if (!ConsumeMana())
+	{
+		StopAttack();
+		return;
+	}
+
+	CurrentWeapon->Attack();
+}
+
+void APlayerCharacter::StopAttack()
+{
+	// 아직 연사 시작 전이라면 연사 진입 취소
+	GetWorldTimerManager().ClearTimer(AutoFireStartTimerHandle);
+	// 연사 중이었다면 연사 종료
+	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
+
+	bIsAttacking = false;
+	bIsAutoFiring = false;
+}
 
 	void APlayerCharacter::TryInteract()
 	{

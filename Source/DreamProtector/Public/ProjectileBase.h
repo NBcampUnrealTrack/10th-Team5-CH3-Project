@@ -35,6 +35,8 @@ protected:
 		const FHitResult& SweepResult
 	);
 
-public:	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+	float Damage = 10.0f;
 
 };

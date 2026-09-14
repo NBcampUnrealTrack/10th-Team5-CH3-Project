@@ -35,10 +35,14 @@ void AStaffBase::Attack()
 
   if (ProjectileClass)
   {
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = this;
+
     GetWorld()->SpawnActor<AProjectileBase>(
       ProjectileClass,
       SpawnLocation,
-      SpawnRotation
+      SpawnRotation,
+      SpawnParams
     );
   }
 }

@@ -67,7 +67,9 @@ private:
 	UFUNCTION()
 	void StopSprint();
 	UFUNCTION()
-	void Attack();
+	void StartAttack();
+	UFUNCTION()
+	void StopAttack();
 	UFUNCTION()
 	void Reload();
 

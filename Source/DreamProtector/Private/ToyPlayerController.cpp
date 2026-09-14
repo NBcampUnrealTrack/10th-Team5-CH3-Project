@@ -150,7 +150,14 @@ void AToyPlayerController::SetupInputComponent()
 				AttackAction,
 				ETriggerEvent::Started,
 				this,
-				&AToyPlayerController::Attack
+				&AToyPlayerController::StartAttack
+			);
+
+			EnhancedInputComponent->BindAction(
+				AttackAction,
+				ETriggerEvent::Completed,
+				this,
+				&AToyPlayerController::StopAttack
 			);
 		}
 
@@ -230,13 +237,22 @@ void AToyPlayerController::StopSprint()
 		PlayerCharacter->StopSprint();
 	}
 }
-//
-void AToyPlayerController::Attack()
+//АјАн 
+void AToyPlayerController::StartAttack()
 {
 	if (APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn()))
 	{
-		PlayerCharacter->Attack();
+		PlayerCharacter->StartAttack();
+	}
+}
+
+void AToyPlayerController::StopAttack()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->StopAttack();
 	}
 }
 

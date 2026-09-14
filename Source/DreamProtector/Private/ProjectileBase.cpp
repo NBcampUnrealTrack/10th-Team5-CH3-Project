@@ -1,4 +1,5 @@
 #include "ProjectileBase.h"
+#include "BaseMonster.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -37,13 +38,18 @@ void AProjectileBase::OnOverlapBegin(
 	const FHitResult& SweepResult)
 {
 	//충돌한 Actor가 유효하지 않거나 나 자신이라면 무시
-	if (!OtherActor || OtherActor == this)
+	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
 	{
 		return;
 	}
 
-	//UE_LOG(LogTemp, Warning, TEXT("Overlap: %s"), *OtherActor->GetName());
+	if (ABaseMonster* Monster = Cast<ABaseMonster>(OtherActor))
+	{
+		Monster->TakeDamage(Damage);
+		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
 
+		Destroy();
+	}
 }
 
 

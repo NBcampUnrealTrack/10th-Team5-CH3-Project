@@ -53,6 +53,30 @@ protected:
 	float ReloadTime = 2.0f;
 	FTimerHandle ReloadTimerHandle;
 
+	// 연사 시작까지 기다리는 타이머
+	FTimerHandle AutoFireStartTimerHandle;
+	// 실제 연사 반복 타이머
+	FTimerHandle AutoFireTimerHandle;
+	// 단발 타이머
+	FTimerHandle SingleFireCooldownTimer;
+
+	// 몇 초 이상 누르면 연사로 판단할지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float AutoFireHoldTime = 0.25f;
+	// 연사 간격
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float AttackInterval = 0.2f;
+	// 현재 연사 중인지
+	UPROPERTY(BlueprintReadOnly, Category = "Attack")
+	bool bIsAutoFiring = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	float SingleFireCooldown = 0.3f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attack")
+	bool bIsAttacking = false;
+	bool bCanAttack = true;
+
+
  
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	AWeaponBase* CurrentWeapon;
@@ -69,6 +93,7 @@ public:
 	void StartSprint();
 	void StopSprint();
 
+
 	float GetMaxHP()const;
 	float GetCurrentHP()const;
 	float GetMaxMana()const;
@@ -79,6 +104,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	void Attack();
-
+	void StartAttack();
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void StopAttack();
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void StartAutoFire();
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void AutoAttack();
 };
