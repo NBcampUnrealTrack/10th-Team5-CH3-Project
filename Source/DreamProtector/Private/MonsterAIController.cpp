@@ -2,6 +2,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet//GameplayStatics.h"
+#include "BaseMonster.h"
 
 AMonsterAIController::AMonsterAIController()
 {
@@ -27,6 +28,16 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 
 void AMonsterAIController::SetInitialTarget()
 {
+	// 이미 Target이 설정되있으면 덮어쓰지 않음
+	if (ABaseMonster* Monster = Cast<ABaseMonster>(GetPawn()))
+	{
+		// GetTarget()이라는 getter가 필요
+		if (Monster->GetTarget() != nullptr)
+		{
+			// 이미 타겟이 있으니까 스킵
+			return;
+		}
+	}
 	// BlackBoard에 TargetActor 채우기 (임시: 0번 플레이어 자동 타겟팅)
 	if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
 	{
