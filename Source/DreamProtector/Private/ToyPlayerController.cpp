@@ -150,7 +150,14 @@ void AToyPlayerController::SetupInputComponent()
 				AttackAction,
 				ETriggerEvent::Started,
 				this,
-				&AToyPlayerController::Attack
+				&AToyPlayerController::StartAttack
+			);
+
+			EnhancedInputComponent->BindAction(
+				AttackAction,
+				ETriggerEvent::Completed,
+				this,
+				&AToyPlayerController::StopAttack
 			);
 		}
 
@@ -230,13 +237,22 @@ void AToyPlayerController::StopSprint()
 		PlayerCharacter->StopSprint();
 	}
 }
-//
-void AToyPlayerController::Attack()
+//공격 
+void AToyPlayerController::StartAttack()
 {
 	if (APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn()))
 	{
-		PlayerCharacter->Attack();
+		PlayerCharacter->StartAttack();
+	}
+}
+
+void AToyPlayerController::StopAttack()
+{
+	if (APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn()))
+	{
+		PlayerCharacter->StopAttack();
 	}
 }
 
@@ -256,7 +272,6 @@ void AToyPlayerController::Inventory()
 		return;
 	}
 
-	//처음 한번 생성
 	if (!InventoryWidget)
 	{
 		InventoryWidget = CreateWidget<UUserWidget>(
@@ -265,20 +280,23 @@ void AToyPlayerController::Inventory()
 		);
 	}
 
-	if (!InventoryWidget)
-	{
-		return;
-	}
-
-	// 이미 열려 있으면 닫기
 	if (InventoryWidget->IsInViewport())
 	{
 		InventoryWidget->RemoveFromParent();
+
+		bShowMouseCursor = false;
+
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
 	}
-	// 닫혀 있으면 열기
 	else
 	{
 		InventoryWidget->AddToViewport();
+
+		bShowMouseCursor = true;
+
+		FInputModeGameAndUI InputMode;
+		InputMode.SetHideCursorDuringCapture(false);
+		SetInputMode(InputMode);
 	}
-		
 }
