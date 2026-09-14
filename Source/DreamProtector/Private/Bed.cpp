@@ -30,8 +30,10 @@ void ABed::IncreaseStress(int32 Amount)
 	//현재스트레스가 최대스트레스보다 커지지않도록 제한
 	CurrentStress = FMath::Clamp(CurrentStress, 0, MaxStress);
 
+	//스트레스 수치 변경 알림
 	OnStressChganged.Broadcast(CurrentStress, MaxStress);
-
+	//침대가 공격받았다는 알림
+	OnBedAttacked.Broadcast();
 	UE_LOG(
 		LogTemp,
 		Warning,
