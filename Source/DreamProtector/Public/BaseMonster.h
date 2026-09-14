@@ -26,6 +26,10 @@ public:
 	// 추적 / 공격할 대상 지정
 	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
 	void SetTarget(AActor* InTarget); 
+
+	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
+	AActor* GetTarget() const { return Target; }
+
 	// 데미지 받을면 호출 -> HP 깎고 0이하면 뒤짐(Die 호출)
 	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
 	virtual void TakeDamage(float DamageAmount);
