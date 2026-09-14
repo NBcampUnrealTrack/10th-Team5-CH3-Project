@@ -67,7 +67,7 @@ void ABaseMonster::TakeDamage(float DamageAmount)
 	}
 }
 // 체력 0이하가 되면 takeDamage()에서 호출
-void ABaseMonster::Die()                                 
+void ABaseMonster::Die_Implementation()                                 
 {
 	if (GetCharacterMovement())
 	{// 사망 후 더 이상 움직이지 않도록 멈춤
