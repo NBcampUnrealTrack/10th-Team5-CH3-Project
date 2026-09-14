@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -7,9 +7,7 @@
 class UStaticMeshComponent;
 class UBoxComponent;
 
-
-
-//½ºÆ®·¹½º°¡ ¹Ù²»À»‹š ¾Ë·ÁÁÖ´Â µô¸®°ÔÀÌÆ® ¸ÅÅ©·Î
+//ìŠ¤íŠ¸ë ˆìŠ¤ê°€ ë°”ê¼‡ì„ë–„ ì•Œë ¤ì£¼ëŠ” ë”œë¦¬ê²Œì´íŠ¸ ë§¤í¬ë¡œ
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnStressChanged,
 	int32, CurrentStress,
@@ -51,6 +49,7 @@ protected:
 
 public:	
 	
+	UFUNCTION(BlueprintCallable, Category = "Stress")
 	void IncreaseStress(int32 amount);
 
 };
