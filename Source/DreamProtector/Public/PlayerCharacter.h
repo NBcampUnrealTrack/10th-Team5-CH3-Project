@@ -111,4 +111,6 @@ public:
 	void StartAutoFire();
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void AutoAttack();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
+	void PlayReloadSound();
 };

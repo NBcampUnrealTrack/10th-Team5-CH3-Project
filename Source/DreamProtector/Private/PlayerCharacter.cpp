@@ -295,6 +295,7 @@ void APlayerCharacter::ReloadMana()
 	bIsReloading = true;
 	UE_LOG(LogTemp, Warning, TEXT("Reload Start"));
 
+	PlayReloadSound();
 	//2초후에 장전함수 실행
 	GetWorldTimerManager().SetTimer(
 		ReloadTimerHandle,
