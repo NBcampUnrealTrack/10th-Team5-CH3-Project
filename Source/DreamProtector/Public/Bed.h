@@ -6,12 +6,16 @@
 
 class UStaticMeshComponent;
 class UBoxComponent;
+
+
+
 //스트레스가 바꼇을떄 알려주는 딜리게이트 매크로
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnStressChanged,
 	int32, CurrentStress,
 	int32, MaxStress
 	);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBedAttacked);
 
 UCLASS()
 class DREAMPROTECTOR_API ABed : public AActor
@@ -32,6 +36,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stress")
 	int32 GetMaxStress() const;
+	UPROPERTY(BlueprintAssignable, Category = "Stress")
+	FOnBedAttacked OnBedAttacked;
+
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stress")
