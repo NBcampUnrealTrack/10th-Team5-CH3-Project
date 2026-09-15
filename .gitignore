@@ -84,3 +84,4 @@ DerivedDataCache/*
 
 # Prerequisites
 *.d
+*.htm
