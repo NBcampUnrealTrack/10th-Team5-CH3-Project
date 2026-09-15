@@ -13,14 +13,16 @@ AProjectileBase::AProjectileBase()
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	//처음 발사 속도
-	ProjectileMovement->InitialSpeed = 3000.0f;
+	ProjectileMovement->InitialSpeed = 4000.0f;
 	//최대 속도
-	ProjectileMovement->MaxSpeed = 3000.0f;
+	ProjectileMovement->MaxSpeed = 5000.0f;
 	//날아가는 방향을 바라보게 할거냐 true/false
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	//중력 영향 (현재는 0 == 직선)
-	ProjectileMovement->ProjectileGravityScale = 1.0f;
+	ProjectileMovement->ProjectileGravityScale = 0.2f;
 
+	//발사체 수명 (0초뒤 삭제) 
+	InitialLifeSpan = 0.0f;
 
 	//SphereCollision에서 Overlap이 시작 될때 현재 객체에서 OnOverlap 함수 실행
 	SphereCollision->OnComponentBeginOverlap.AddDynamic(
@@ -45,10 +47,13 @@ void AProjectileBase::OnOverlapBegin(
 
 	if (ABaseMonster* Monster = Cast<ABaseMonster>(OtherActor))
 	{
-		Monster->TakeDamage(Damage);
 		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
 
+		Monster->TakeDamage(Damage);
+		
 		Destroy();
+
+		return;
 	}
 }
 

@@ -44,6 +44,16 @@ void AWaveManager::UpdateCurrentMonsterCount()
     {
         CurrentMonsterCount += MonsterData.SpawnCount;
     }
+
+    KilledMonsterCount = 0;
+
+    // HUD에게 현재 몬스터 수 알림
+    OnMonsterCountChanged.Broadcast(
+        CurrentMonsterCount,
+        CurrentMonsterCount
+    );
+
+
 }
 
 void AWaveManager::SpawnCurrentWave()
@@ -56,6 +66,17 @@ void AWaveManager::SpawnCurrentWave()
     {
         return;
     }
+
+    //  새 웨이브 시작이므로 처치 수 초기화
+    KilledMonsterCount = 0;
+    //  현재 웨이브의 총 몬스터 수 다시 계산
+    UpdateCurrentMonsterCount();
+
+    // HUD에 새 웨이브 몬스터 수 전달
+    OnMonsterCountChanged.Broadcast(
+        CurrentMonsterCount,
+        CurrentMonsterCount
+    );
 
     // 현재 웨이브 몬스터 종류 하나씩 확인하기
     for (const FWaveMonsterData& MonsterData : WaveData->Monsters)
@@ -162,6 +183,7 @@ void AWaveManager::StartFirstWave()
         TEXT("===== WAVE 1 START =====")
     );
 
+    UpdateCurrentMonsterCount();
     // Wave 1 몬스터 스폰
     SpawnCurrentWave();
 
@@ -185,7 +207,7 @@ void AWaveManager::StartNextWave()
         TEXT("===== WAVE %d START ====="),
         CurrentWave
     );
-
+    UpdateCurrentMonsterCount();
     // 다음 웨이브 몬스터 스폰
     SpawnCurrentWave();
 
@@ -198,10 +220,20 @@ void AWaveManager::OnMonsterKilled()
     // 처치한 몬스터 수 증가
     KilledMonsterCount++;
 
+    const int32 RemainingCount =
+        FMath::Max(CurrentMonsterCount - KilledMonsterCount, 0);
+
+    OnMonsterCountChanged.Broadcast(
+        RemainingCount,
+        CurrentMonsterCount
+    );
+
     UE_LOG(
         LogTemp,
         Warning,
-        TEXT("Monster Killed: %d"),
-        KilledMonsterCount
+        TEXT("Monster Killed: %d, Remaining: %d / %d"),
+        KilledMonsterCount,
+        RemainingCount,
+        CurrentMonsterCount
     );
 }
