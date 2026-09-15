@@ -10,11 +10,17 @@ UCLASS()
 class DREAMPROTECTOR_API AStaffBase : public AWeaponBase
 {
 	GENERATED_BODY()
-	
+
 
 public:
 	AStaffBase();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void PlayCastVFX(FVector Location, FRotator Rotation);
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void StartCastVFX();
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void StopCastVFX();
 protected:
 
 	virtual void Attack() override;
@@ -25,5 +31,4 @@ protected:
 	TSubclassOf<AProjectileBase> ProjectileClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Staff")
 	USceneComponent* MuzzlePoint;
-
 };

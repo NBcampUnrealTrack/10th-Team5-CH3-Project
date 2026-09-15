@@ -13,8 +13,6 @@ class DREAMPROTECTOR_API AWeaponBase : public AActor
 public:	
 	AWeaponBase();
 
-	
-
 	//Attack 가상함수
 	virtual void Attack();
 
@@ -28,7 +26,6 @@ protected:
 	//사거리 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WeaponBase")
 	float Range;
-
 	//루트 컴포넌트 포인터
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* SceneRoot;
