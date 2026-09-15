@@ -21,8 +21,8 @@ AProjectileBase::AProjectileBase()
 	//중력 영향 (현재는 0 == 직선)
 	ProjectileMovement->ProjectileGravityScale = 1.0f;
 
-	//발사체 수명 (2초뒤 삭제) 
-	InitialLifeSpan = 2.0f;
+	//발사체 수명 (1초뒤 삭제) 
+	InitialLifeSpan = 1.0f;
 
 	//SphereCollision에서 Overlap이 시작 될때 현재 객체에서 OnOverlap 함수 실행
 	SphereCollision->OnComponentBeginOverlap.AddDynamic(
