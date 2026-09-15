@@ -11,6 +11,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
     int32, TotalCount
 );
 
+class ABaseMonster;
+
 // 하나의 웨이브에서 사용할 몬스터 정보를 저장하는 구조체
 USTRUCT(BlueprintType)
 struct FWaveMonsterData
