@@ -1,6 +1,8 @@
 #include "StaffBase.h"
+#include "ProjectileBase.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
+#include "DrawDebugHelpers.h"
 
 
 AStaffBase::AStaffBase()
@@ -14,8 +16,6 @@ AStaffBase::AStaffBase()
 
 void AStaffBase::Attack()
 {
-  FVector SpawnLocation = MuzzlePoint->GetComponentLocation();
-
   APlayerController* PC = GetWorld()->GetFirstPlayerController();
   if (!PC)
   {
@@ -27,11 +27,47 @@ void AStaffBase::Attack()
 
   PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-  //카메라방향
-  FRotator SpawnRotation = CameraRotation;
-  //방향 조정
-  SpawnRotation.Pitch += 15.0f;
-  SpawnRotation.Yaw -= 1.0f;
+  // 카메라가 바라보는 방향으로 멀리 Trace
+  FVector TraceStart = CameraLocation;
+  FVector TraceEnd =
+    TraceStart + CameraRotation.Vector() * 10000.0f;
+
+  FHitResult HitResult;
+
+  FCollisionQueryParams Params;
+  Params.AddIgnoredActor(this);
+
+  if (GetOwner())
+  {
+    Params.AddIgnoredActor(GetOwner());
+  }
+
+  bool bHit = GetWorld()->LineTraceSingleByChannel(
+    HitResult,
+    TraceStart,
+    TraceEnd,
+    ECC_Visibility,
+    Params
+  );
+
+  // 맞은 게 있으면 그 위치
+  // 없으면 카메라 정면 멀리 있는 위치
+  FVector AimPoint = bHit
+    ? HitResult.ImpactPoint
+    : TraceEnd;
+
+  // 실제 총알은 지팡이 끝에서 생성
+  FVector SpawnLocation = MuzzlePoint->GetComponentLocation();
+
+  // 지팡이 끝 -> 조준 지점 방향
+  FVector FireDirection =
+    (AimPoint - SpawnLocation).GetSafeNormal();
+
+  FRotator SpawnRotation =
+    FireDirection.Rotation();
+
+  // 마법진 VFX
+  //PlayCastVFX(SpawnLocation, SpawnRotation);
 
   if (ProjectileClass)
   {
@@ -43,6 +79,26 @@ void AStaffBase::Attack()
       SpawnLocation,
       SpawnRotation,
       SpawnParams
+    );
+    DrawDebugLine(
+      GetWorld(),
+      TraceStart,
+      AimPoint,
+      FColor::Red,
+      false,
+      1.0f,
+      0,
+      1.0f
+    );
+    DrawDebugLine(
+      GetWorld(),
+      SpawnLocation,
+      AimPoint,
+      FColor::Green,
+      false,
+      1.0f,
+      0,
+      2.0f
     );
   }
 }

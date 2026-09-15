@@ -5,6 +5,11 @@
 #include "Engine/DataTable.h"
 #include "WaveManager.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+    FOnMonsterCountChanged,
+    int32, RemainingCount,
+    int32, TotalCount
+);
 
 // 하나의 웨이브에서 사용할 몬스터 정보를 저장하는 구조체
 USTRUCT(BlueprintType)
@@ -49,7 +54,8 @@ public:
 	AWaveManager();
     // 몬스터가 처치됐을 때 호출
     void OnMonsterKilled();
-
+    UPROPERTY(BlueprintAssignable, Category = "Wave")
+    FOnMonsterCountChanged OnMonsterCountChanged;
 protected:
     // 현재 진행 중인 웨이브 번호
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")

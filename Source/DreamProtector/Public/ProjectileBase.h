@@ -37,6 +37,8 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
-	float Damage = 10.0f;
+	float Damage = 50.0f;
+
+	
 
 };
