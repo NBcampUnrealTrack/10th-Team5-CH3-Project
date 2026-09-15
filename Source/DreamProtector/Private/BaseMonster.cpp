@@ -1,5 +1,7 @@
 ﻿#include "BaseMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "WaveManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "MonsterAIController.h"
 
 ABaseMonster::ABaseMonster()
@@ -63,12 +65,13 @@ void ABaseMonster::TakeDamage(float DamageAmount)
 
 	if (CurrentHealth <= 0.0f)
 	{ // 체력 0이면 사망
-		Die();                                           
+		Die_Implementation();
 	}
 }
 // 체력 0이하가 되면 takeDamage()에서 호출
 void ABaseMonster::Die_Implementation()                                 
 {
+	UE_LOG(LogTemp, Warning, TEXT("Die_Implementation Called"));
 	if (GetCharacterMovement())
 	{// 사망 후 더 이상 움직이지 않도록 멈춤
 		GetCharacterMovement()->DisableMovement();        
@@ -77,6 +80,22 @@ void ABaseMonster::Die_Implementation()
 	SetActorEnableCollision(false);                       
 
 	
+	// WaveManager에게 몬스터가 죽었다고 알림
+	if (AWaveManager* WaveManager =
+		Cast<AWaveManager>(
+			UGameplayStatics::GetActorOfClass(
+				GetWorld(),
+				AWaveManager::StaticClass()
+			)
+		))
+	{
+		WaveManager->OnMonsterKilled();
+	}
+
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("WaveManager NOT Found"));
+	}
 	// 액터 제거
 	Destroy();                                            
 }
