@@ -13,7 +13,12 @@ class DREAMPROTECTOR_API ABaseMonster : public ACharacter
 
 public:
 	// 생성자 
-	ABaseMonster();     
+	ABaseMonster();    
+	// 이동 속도, CharacterMovementComponent에 적용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
+	float MoveSpeed = 200.0f;
+	void SetMoveSpeed(float NewSpeed);
+
 
 protected:
 	
@@ -52,10 +57,7 @@ protected:
 	// 공격력, Attack 에 데미지 계산
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
 	float AttackDamage = 10.0f;      
-	// 이동 속도, CharacterMovementComponent에 적용
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
-	float MoveSpeed = 200.0f;       
-	// 추적 / 공격 대상
+    // 추적 / 공격 대상
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
 	TObjectPtr<AActor> Target;      
 

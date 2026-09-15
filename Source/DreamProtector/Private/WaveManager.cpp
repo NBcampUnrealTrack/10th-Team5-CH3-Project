@@ -1,5 +1,6 @@
 #include "WaveManager.h"
 #include "SpawnVolume.h"
+#include "BaseMonster.h"
 
 AWaveManager::AWaveManager()
 {
@@ -108,10 +109,19 @@ void AWaveManager::SpawnCurrentWave()
             // 스폰볼륨에서 랜덤한 스폰 위치 가져오기
             const FVector SpawnLocation = SpawnVolume->GetRandomSpawnLocation();
 
-            // 몬스터 스폰하기
-            GetWorld()->SpawnActor<AActor>(
-                MonsterData.MonsterClass, SpawnLocation, FRotator::ZeroRotator
+            // 몬스터 스폰하기, 몬수터 이동속도 랜덤값 적용
+            ABaseMonster* SpawnedMonster = GetWorld()->SpawnActor<ABaseMonster>(
+                MonsterData.MonsterClass,
+                SpawnLocation,
+                FRotator::ZeroRotator
             );
+
+            if (SpawnedMonster)
+            {
+                SpawnedMonster->SetMoveSpeed(FMath::FRandRange(200.0f, 500.0f));
+
+                UE_LOG(LogTemp, Warning, TEXT("AFTER RANDOM Speed: %f"), SpawnedMonster->MoveSpeed);
+            }
         }
 
     }

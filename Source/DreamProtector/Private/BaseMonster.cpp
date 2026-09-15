@@ -33,6 +33,16 @@ void ABaseMonster::BeginPlay()
 	}
 }
 
+void ABaseMonster::SetMoveSpeed(float NewSpeed)
+{
+	MoveSpeed = NewSpeed;
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+	}
+}
+
 void ABaseMonster::Tick(float DeltaTime)
 {
 	// 사거리 체크 후 Attack() 로직 (원거리)
