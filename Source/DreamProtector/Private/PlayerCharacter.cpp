@@ -84,7 +84,11 @@ void APlayerCharacter::StopSprint()
 
 void APlayerCharacter::StartAttack()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Player Attack Called"));
+	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
+	{
+		Staff->StartCastVFX();
+		UE_LOG(LogTemp, Warning, TEXT("Start Cast VFX Called"));
+	}
 
 	if (!bCanAttack)
 	{
@@ -177,6 +181,12 @@ void APlayerCharacter::StopAttack()
 
 	bIsAttacking = false;
 	bIsAutoFiring = false;
+
+	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
+	{
+		Staff->StopCastVFX();
+		UE_LOG(LogTemp, Warning, TEXT("Start Cast VFX Called"));
+	}
 }
 
 	void APlayerCharacter::TryInteract()
