@@ -25,6 +25,9 @@ protected:
 	UProjectileMovementComponent* ProjectileMovement;
 	//타이머 추가
 	FTimerHandle DeactivateTimerHandle;
+	//투사체 회전속도
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+	FRotator SpinSpeed = FRotator(0.0f, 0.0f, 720.0f);
 
 	//투사체가 다른 액터와 Overlap 되었을 때 호출
 	UFUNCTION()
@@ -38,6 +41,8 @@ protected:
 	);
 
 public:
+	virtual void Tick(float DeltaTime) override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	float Damage = 50.0f;
 

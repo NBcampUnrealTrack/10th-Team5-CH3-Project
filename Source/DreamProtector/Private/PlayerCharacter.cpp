@@ -93,12 +93,6 @@ void APlayerCharacter::StopSprint()
 
 void APlayerCharacter::StartAttack()
 {
-	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
-	{
-		StartCastVFX();
-		UE_LOG(LogTemp, Warning, TEXT("Start Cast VFX Called"));
-	}
-
 	if (!bCanAttack)
 	{
 		return;
@@ -191,10 +185,10 @@ void APlayerCharacter::StopAttack()
 	bIsAttacking = false;
 	bIsAutoFiring = false;
 
+	// 다음 공격 입력에서 마법진을 다시 생성할 수 있게 초기화
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
 	{
-		StopCastVFX();
-		UE_LOG(LogTemp, Warning, TEXT("Start Cast VFX Called"));
+		Staff->ResetCastVFX();
 	}
 }
 
