@@ -5,6 +5,7 @@
 #include "PlayerCharacter.generated.h"
 
 
+class UProjectilePoolComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class AWeaponBase;
@@ -127,4 +128,12 @@ public:
 	{
 		return CastPoint;
 	}
+
+	UProjectilePoolComponent* GetProjectilePoolComponent() const
+	{
+		return ProjectilePoolComponent;
+	}
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
+	UProjectilePoolComponent* ProjectilePoolComponent;
 };
