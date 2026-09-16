@@ -14,6 +14,12 @@ AStaffBase::AStaffBase()
   MuzzlePoint = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzlePoint"));
   MuzzlePoint->SetupAttachment(StaticMeshComp);
 
+
+}
+
+void AStaffBase::ResetCastVFX()
+{
+  bCastVFXPlayed = false;
 }
 
 void AStaffBase::Attack()
@@ -33,20 +39,30 @@ void AStaffBase::Attack()
     return;
   }
 
-  // 카메라 위치 / 방향 가져오기
-  FVector CameraLocation;
-  FRotator CameraRotation;
+  // 화면 크기 가져오기
+  int32 ViewportX;
+  int32 ViewportY;
 
-  PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+  PC->GetViewportSize(
+    ViewportX,
+    ViewportY
+  );
 
-  // 캐릭터 앞 CastPoint 위치에서 발사
-  FVector SpawnLocation =
-    PlayerCharacter->GetCastPoint()->GetComponentLocation();
+  // 화면 중앙을 월드 방향으로 변환
+  FVector WorldLocation;
+  FVector WorldDirection;
 
-  // 카메라가 바라보는 방향으로 Trace
-  FVector TraceStart = CameraLocation;
+  PC->DeprojectScreenPositionToWorld(
+    ViewportX * 0.5f,
+    ViewportY * 0.5f,
+    WorldLocation,
+    WorldDirection
+  );
+
+  // 화면 중앙 기준 Trace
+  FVector TraceStart = WorldLocation;
   FVector TraceEnd =
-    TraceStart + CameraRotation.Vector() * 10000.0f;
+    TraceStart + WorldDirection * 10000.0f;
 
   FHitResult HitResult;
 
@@ -67,12 +83,27 @@ void AStaffBase::Attack()
     ? HitResult.ImpactPoint
     : TraceEnd;
 
+  // 캐릭터 앞 CastPoint 위치
+  FVector SpawnLocation =
+    PlayerCharacter->GetCastPoint()->GetComponentLocation();
+
   // CastPoint → AimPoint 방향
   FVector FireDirection =
     (AimPoint - SpawnLocation).GetSafeNormal();
 
   FRotator SpawnRotation =
     FireDirection.Rotation();
+
+  // 공격 한번에 마법진을 한 번만 생성
+  if (!bCastVFXPlayed)
+  {
+    PlayCastVFX(
+      SpawnLocation,
+      SpawnRotation
+    );
+
+    bCastVFXPlayed = true;
+  }
 
   // 플레이어가 가지고 있는 Projectile Pool 가져오기
   UProjectilePoolComponent* Pool =
@@ -97,30 +128,15 @@ void AStaffBase::Attack()
     }
   }
 
-  // 디버그용 조준선
-  DrawDebugLine(
-    GetWorld(),
-    TraceStart,
-    AimPoint,
-    FColor::Red,
-    false,
-    1.0f,
-    0,
-    1.0f
-  );
-
-  // 디버그용 실제 발사 방향
+  // 디버그용 조준
   DrawDebugLine(
     GetWorld(),
     SpawnLocation,
     AimPoint,
-    FColor::Green,
+    FColor::Red,
     false,
-    1.0f,
+    2.0f,
     0,
     2.0f
   );
 }
-
-
-

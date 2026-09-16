@@ -3,7 +3,7 @@
 
 AProjectileBase::AProjectileBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
 	SetRootComponent(SphereCollision);
@@ -13,13 +13,13 @@ AProjectileBase::AProjectileBase()
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	//처음 발사 속도
-	ProjectileMovement->InitialSpeed = 4000.0f;
+	ProjectileMovement->InitialSpeed = 5000.0f;
 	//최대 속도
 	ProjectileMovement->MaxSpeed = 5000.0f;
 	//날아가는 방향을 바라보게 할거냐 true/false
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	//중력 영향 (현재는 0 == 직선)
-	ProjectileMovement->ProjectileGravityScale = 0.2f;
+	ProjectileMovement->ProjectileGravityScale = 0.1f;
 
 	//SphereCollision에서 Overlap이 시작 될때 현재 객체에서 OnOverlap 함수 실행
 	SphereCollision->OnComponentBeginOverlap.AddDynamic(
@@ -51,6 +51,18 @@ void AProjectileBase::OnOverlapBegin(
 		DeactivateProjectile();
 
 		return;
+	}
+}
+
+void AProjectileBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!IsHidden())
+	{
+		StaticMeshComp->AddLocalRotation(
+			FRotator(350.0f, 150.0f, 90.0f) * DeltaTime
+		);
 	}
 }
 

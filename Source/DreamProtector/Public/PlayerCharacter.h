@@ -116,12 +116,6 @@ public:
 	void AutoAttack();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
 	void PlayReloadSound();
-	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
-	void PlayCastVFX(FVector Location, FRotator Rotation);
-	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
-	void StartCastVFX();
-	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
-	void StopCastVFX();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	USceneComponent* GetCastPoint() const
