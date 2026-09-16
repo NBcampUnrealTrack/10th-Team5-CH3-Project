@@ -35,6 +35,8 @@ protected:
 	USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* Camera;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	USceneComponent* CastPoint;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float WalkSpeed = 500.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
@@ -113,4 +115,16 @@ public:
 	void AutoAttack();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
 	void PlayReloadSound();
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void PlayCastVFX(FVector Location, FRotator Rotation);
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void StartCastVFX();
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void StopCastVFX();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	USceneComponent* GetCastPoint() const
+	{
+		return CastPoint;
+	}
 };

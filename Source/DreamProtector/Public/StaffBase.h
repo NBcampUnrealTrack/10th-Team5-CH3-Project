@@ -15,12 +15,12 @@ class DREAMPROTECTOR_API AStaffBase : public AWeaponBase
 public:
 	AStaffBase();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	/*UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
 	void PlayCastVFX(FVector Location, FRotator Rotation);
 	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
 	void StartCastVFX();
 	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
-	void StopCastVFX();
+	void StopCastVFX();*/
 protected:
 
 	virtual void Attack() override;
