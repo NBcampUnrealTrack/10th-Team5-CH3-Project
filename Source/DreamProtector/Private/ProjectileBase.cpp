@@ -21,9 +21,6 @@ AProjectileBase::AProjectileBase()
 	//중력 영향 (현재는 0 == 직선)
 	ProjectileMovement->ProjectileGravityScale = 0.2f;
 
-	//발사체 수명 (0초뒤 삭제) 
-	InitialLifeSpan = 0.0f;
-
 	//SphereCollision에서 Overlap이 시작 될때 현재 객체에서 OnOverlap 함수 실행
 	SphereCollision->OnComponentBeginOverlap.AddDynamic(
 		this,
@@ -51,12 +48,54 @@ void AProjectileBase::OnOverlapBegin(
 
 		Monster->TakeDamage(Damage);
 		
-		Destroy();
+		DeactivateProjectile();
 
 		return;
 	}
 }
 
+void AProjectileBase::ActivateProjectile(
+	const FVector& SpawnLocation,
+	const FRotator& SpawnRotation
+)
+{
+	SetActorLocationAndRotation(
+		SpawnLocation,
+		SpawnRotation
+	);
 
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
 
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->Activate(true);
 
+		ProjectileMovement->Velocity =
+			SpawnRotation.Vector() *
+			ProjectileMovement->InitialSpeed;
+	}
+
+	// 빗나간 총알도 3초 후 풀로 반환
+	GetWorldTimerManager().SetTimer(
+		DeactivateTimerHandle,
+		this,
+		&AProjectileBase::DeactivateProjectile,
+		3.0f,
+		false
+	);
+}
+
+void AProjectileBase::DeactivateProjectile()
+{
+	GetWorldTimerManager().ClearTimer(DeactivateTimerHandle);
+
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->StopMovementImmediately();
+		ProjectileMovement->Deactivate();
+	}
+}
