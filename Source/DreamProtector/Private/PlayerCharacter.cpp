@@ -28,6 +28,12 @@ APlayerCharacter::APlayerCharacter()
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
+	CastPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CastPoint"));
+	CastPoint->SetupAttachment(RootComponent);
+
+	// 캐릭터 기준 앞쪽으로 이동
+	CastPoint->SetRelativeLocation(FVector(200.0f, 0.0f, 50.0f));
 }
 
 
@@ -86,7 +92,7 @@ void APlayerCharacter::StartAttack()
 {
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
 	{
-		Staff->StartCastVFX();
+		StartCastVFX();
 		UE_LOG(LogTemp, Warning, TEXT("Start Cast VFX Called"));
 	}
 
@@ -184,7 +190,7 @@ void APlayerCharacter::StopAttack()
 
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
 	{
-		Staff->StopCastVFX();
+		StopCastVFX();
 		UE_LOG(LogTemp, Warning, TEXT("Start Cast VFX Called"));
 	}
 }
