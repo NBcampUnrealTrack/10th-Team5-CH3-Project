@@ -19,6 +19,14 @@ APlayerCharacter::APlayerCharacter()
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 400.0f;
 	SpringArm->bUsePawnControlRotation = true;
+
+	//카메라 렉 사용하여 뒤늦게 따라오기 (이동)
+	SpringArm->bEnableCameraLag = true;
+	SpringArm->CameraLagSpeed = 8.0f;
+	//회전
+	SpringArm->bEnableCameraRotationLag = true;
+	SpringArm->CameraRotationLagSpeed = 12.0f;
+
 	//카메라 컴포넌트추가
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
