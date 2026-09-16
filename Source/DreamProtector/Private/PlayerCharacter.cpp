@@ -4,6 +4,7 @@
 #include "WeaponBase.h"
 #include "StaffBase.h"
 #include "InventoryComponent.h"
+#include "ProjectilePoolComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFrameWork/SpringArmComponent.h"
@@ -31,6 +32,8 @@ APlayerCharacter::APlayerCharacter()
 
 	CastPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CastPoint"));
 	CastPoint->SetupAttachment(RootComponent);
+
+	ProjectilePoolComponent = CreateDefaultSubobject<UProjectilePoolComponent>(TEXT("ProjectilePoolComponent"));
 
 	// 캐릭터 기준 앞쪽으로 이동
 	CastPoint->SetRelativeLocation(FVector(200.0f, 0.0f, 50.0f));

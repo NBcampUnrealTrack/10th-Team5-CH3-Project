@@ -23,6 +23,8 @@ protected:
 	//투사체 이동 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UProjectileMovementComponent* ProjectileMovement;
+	//타이머 추가
+	FTimerHandle DeactivateTimerHandle;
 
 	//투사체가 다른 액터와 Overlap 되었을 때 호출
 	UFUNCTION()
@@ -39,6 +41,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	float Damage = 50.0f;
 
+	UFUNCTION(BlueprintCallable, Category = "Projectile")
+	void ActivateProjectile(
+		const FVector& SpawnLocation,
+		const FRotator& SpawnRotation
+	);
+	UFUNCTION(BlueprintCallable, Category = "Projectile")
+	void DeactivateProjectile();
 	
 
 };

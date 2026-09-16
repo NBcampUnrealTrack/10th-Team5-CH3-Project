@@ -1,6 +1,7 @@
 #include "StaffBase.h"
 #include "ProjectileBase.h"
 #include "PlayerCharacter.h"
+#include "ProjectilePoolComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "DrawDebugHelpers.h"
@@ -73,39 +74,53 @@ void AStaffBase::Attack()
   FRotator SpawnRotation =
     FireDirection.Rotation();
 
-  if (ProjectileClass)
+  // 플레이어가 가지고 있는 Projectile Pool 가져오기
+  UProjectilePoolComponent* Pool =
+    PlayerCharacter->GetProjectilePoolComponent();
+
+  if (Pool)
   {
-    FActorSpawnParameters SpawnParams;
-    SpawnParams.Owner = this;
+    // 현재 사용하지 않는 Projectile 하나 가져오기
+    AProjectileBase* Projectile =
+      Pool->GetProjectile();
 
-    GetWorld()->SpawnActor<AProjectileBase>(
-      ProjectileClass,
-      SpawnLocation,
-      SpawnRotation,
-      SpawnParams
-    );
+    if (Projectile)
+    {
+      // 기존 Owner 충돌 무시 로직을 위해 Owner 지정
+      Projectile->SetOwner(this);
 
-    DrawDebugLine(
-      GetWorld(),
-      TraceStart,
-      AimPoint,
-      FColor::Red,
-      false,
-      1.0f,
-      0,
-      1.0f
-    );
-
-    DrawDebugLine(
-      GetWorld(),
-      SpawnLocation,
-      AimPoint,
-      FColor::Green,
-      false,
-      1.0f,
-      0,
-      2.0f
-    );
+      // 새로 생성하지 않고 기존 Projectile 재사용
+      Projectile->ActivateProjectile(
+        SpawnLocation,
+        SpawnRotation
+      );
+    }
   }
+
+  // 디버그용 조준선
+  DrawDebugLine(
+    GetWorld(),
+    TraceStart,
+    AimPoint,
+    FColor::Red,
+    false,
+    1.0f,
+    0,
+    1.0f
+  );
+
+  // 디버그용 실제 발사 방향
+  DrawDebugLine(
+    GetWorld(),
+    SpawnLocation,
+    AimPoint,
+    FColor::Green,
+    false,
+    1.0f,
+    0,
+    2.0f
+  );
 }
+
+
 
