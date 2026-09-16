@@ -11,7 +11,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
     int32, TotalCount
 );
 
+// HUD에 카운트다운 시작을 알리고, 시작할 웨이브 번호를 전달하는 이벤트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+    FOnWaveCountdownStarted,
+    int32, WaveNumber
+);
+
 class ABaseMonster;
+class UAudioComponent;
+class USoundBase;
 
 // 하나의 웨이브에서 사용할 몬스터 정보를 저장하는 구조체
 USTRUCT(BlueprintType)
@@ -58,6 +66,11 @@ public:
     void OnMonsterKilled();
     UPROPERTY(BlueprintAssignable, Category = "Wave")
     FOnMonsterCountChanged OnMonsterCountChanged;
+
+    // 블루프린트에서 Bind Event로 연결할 수 있는 카운트다운 이벤트
+    UPROPERTY(BlueprintAssignable, Category = "Wave")
+    FOnWaveCountdownStarted OnWaveCountdownStarted;
+
 protected:
     // 현재 진행 중인 웨이브 번호
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
@@ -120,6 +133,34 @@ protected:
     // 튜토리얼이 끝났을 때 호출
     void StartFirstWave();
 
+    // 카운트다운 알림 예약에 사용하는 타이머
+    // 실제 웨이브 시작 타이머와 별도로 사용
+    FTimerHandle CountdownTimerHandle;
+
+    // 첫 번째 웨이브의 카운트다운 시작을 알리는 함수
+    void NotifyFirstWaveCountdown();
+
+    // 다음 웨이브의 카운트다운 시작을 알리는 함수
+    void NotifyNextWaveCountdown();
+
+    // 배경음을 재생할 컴포넌트
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
+    TObjectPtr<UAudioComponent> BGMComponent;
+
+    // 튜토리얼 배경음
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+    TObjectPtr<USoundBase> TutorialBGM;
+
+    // 전투 배경음
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+    TObjectPtr<USoundBase> BattleBGM;
+
+    // 준비시간 배경음
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+    TObjectPtr<USoundBase> PreparationBGM;
+
+    // 현재 음악을 멈추고 새 음악을 재생
+    void ChangeBGM(USoundBase* NewMusic);
 
 public:	
 	virtual void Tick(float DeltaTime) override;

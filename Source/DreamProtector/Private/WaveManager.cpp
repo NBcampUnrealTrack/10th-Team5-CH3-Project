@@ -1,11 +1,29 @@
 #include "WaveManager.h"
 #include "SpawnVolume.h"
 #include "BaseMonster.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 
 AWaveManager::AWaveManager()
 {
  	PrimaryActorTick.bCanEverTick = true;
 
+    BGMComponent =
+        CreateDefaultSubobject<UAudioComponent>(TEXT("BGMComponent"));
+
+    // 음악을 지정하고 직접 Play할 때 재생
+    BGMComponent->SetAutoActivate(false);
+
+    // 위치나 거리에 영향을 받지 않는 배경음
+    BGMComponent->bAllowSpatialization = false;
+
+    // 게임이 일시정지되면 음악도 일시정지
+    BGMComponent->SetUISound(false);
+
+    // 음악 교체 시에도 컴포넌트를 계속 사용
+    BGMComponent->bAutoDestroy = false;
+
+    BGMComponent->SetVolumeMultiplier(0.5f);
 }
 
 
@@ -132,7 +150,18 @@ void AWaveManager::BeginPlay()
 
     UE_LOG(LogTemp, Warning, TEXT("===== WaveManager BeginPlay ====="));
 
+    ChangeBGM(TutorialBGM);
+
     UpdateCurrentMonsterCount();
+
+    // 튜토리얼 27초에 HUD의 3 → 2 → 1 연출 시작
+    GetWorldTimerManager().SetTimer(
+        CountdownTimerHandle,
+        this,
+        &AWaveManager::NotifyFirstWaveCountdown,
+        27.0f,
+        false
+    );
 
     // 튜토리얼 30초 후 Wave 1 시작
     GetWorldTimerManager().SetTimer(
@@ -175,6 +204,27 @@ void AWaveManager::OnWaveTimeExpired()
         CurrentWave
     );
 
+    // 마지막 웨이브라면 다음 준비시간과 카운트다운을 예약하지 않음
+    if (CurrentWave >= MaxWave)
+    {
+        // 마지막 웨이브가 끝났다면 음악 정지
+        ChangeBGM(nullptr);
+
+        // 스테이지 클리어 처리가 필요하다면 이 분기에서 별도로 실행
+        return;
+    }
+
+    ChangeBGM(PreparationBGM);
+
+    // 준비시간 42초에 다음 웨이브의 3 → 2 → 1 연출 시작
+    GetWorldTimerManager().SetTimer(
+        CountdownTimerHandle,
+        this,
+        &AWaveManager::NotifyNextWaveCountdown,
+        42.0f,
+        false
+    );
+
     // 45초 후 다음 웨이브 시작
     GetWorldTimerManager().SetTimer(
         NextWaveTimerHandle,
@@ -192,6 +242,8 @@ void AWaveManager::StartFirstWave()
         Warning,
         TEXT("===== WAVE 1 START =====")
     );
+
+    ChangeBGM(BattleBGM);
 
     UpdateCurrentMonsterCount();
     // Wave 1 몬스터 스폰
@@ -217,6 +269,9 @@ void AWaveManager::StartNextWave()
         TEXT("===== WAVE %d START ====="),
         CurrentWave
     );
+
+    ChangeBGM(BattleBGM);
+
     UpdateCurrentMonsterCount();
     // 다음 웨이브 몬스터 스폰
     SpawnCurrentWave();
@@ -246,4 +301,36 @@ void AWaveManager::OnMonsterKilled()
         RemainingCount,
         CurrentMonsterCount
     );
+}
+
+void AWaveManager::NotifyFirstWaveCountdown()
+{
+    // 현재 웨이브 번호를 HUD에 전달 (첫 웨이브는 1)
+    OnWaveCountdownStarted.Broadcast(CurrentWave);
+}
+
+void AWaveManager::NotifyNextWaveCountdown()
+{
+    // 다음 웨이브가 있을 때만 카운트다운 알림
+    if (CurrentWave < MaxWave)
+    {
+        // 실제 웨이브 번호 증가는 StartNextWave()에서 처리하므로 여기서는 다음 번호만 전달
+        OnWaveCountdownStarted.Broadcast(CurrentWave + 1);
+    }
+}
+
+void AWaveManager::ChangeBGM(USoundBase* NewMusic)
+{
+    if (!BGMComponent)
+    {
+        return;
+    }
+
+    BGMComponent->Stop();
+    BGMComponent->SetSound(NewMusic);
+
+    if (NewMusic)
+    {
+        BGMComponent->Play();
+    }
 }
