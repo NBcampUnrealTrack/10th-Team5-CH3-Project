@@ -5,6 +5,7 @@
 #include "StaffBase.h"
 #include "InventoryComponent.h"
 #include "ProjectilePoolComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFrameWork/SpringArmComponent.h"
@@ -47,26 +48,37 @@ APlayerCharacter::APlayerCharacter()
 	CastPoint->SetRelativeLocation(FVector(200.0f, 0.0f, 50.0f));
 }
 
-
-
-//임시 테스트용
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	CurrentHP = MaxHP;
 	CurrentMana = MaxMana;
-	
-	AActor* FoundWeapon = UGameplayStatics::GetActorOfClass(GetWorld(), AStaffBase::StaticClass());
 
-	CurrentWeapon = Cast<AWeaponBase>(FoundWeapon);
+	// BP_PlayerCharacter에 붙어있는 Child Actor Component 가져오기
+	UChildActorComponent* StaffWeaponComponent =
+		FindComponentByClass<UChildActorComponent>();
 
-	if (CurrentWeapon)
+	if (StaffWeaponComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Weapon Found: %s"), *CurrentWeapon->GetName());
+		// Child Actor Component 안의 실제 BP_StaffBase Actor 가져오기
+		AActor* StaffActor =
+			StaffWeaponComponent->GetChildActor();
+
+		CurrentWeapon =
+			Cast<AWeaponBase>(StaffActor);
+
+		if (CurrentWeapon)
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("Weapon Found: %s"),
+				*CurrentWeapon->GetName()
+			);
+		}
 	}
 }
-
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
@@ -117,37 +129,45 @@ void APlayerCharacter::EndAttackAnimation()
 
 void APlayerCharacter::StartAttack()
 {
-
+	// 쿨타임 중이면 공격 불가
 	if (!bCanAttack)
 	{
 		return;
 	}
 
-	// 이전 공격 애니메이션이 아직 끝나지 않았다면 공격 불가
+	// 이전 공격 모션이 아직 끝나지 않았다면 공격 불가
 	if (bIsAttacking)
 	{
 		return;
 	}
 
+	// 장전 중이면 공격 불가
 	if (bIsReloading)
 	{
 		return;
 	}
 
+	// 무기가 없다면 공격 불가
 	if (!CurrentWeapon)
 	{
 		return;
 	}
 
-	// 첫 발 마나 소모
+	// 마나 소모
 	if (!ConsumeMana())
 	{
 		return;
 	}
 
-	// 단발 공격 시작
+	// 공격 상태 시작
 	bIsAttacking = true;
 	bIsAutoFiring = false;
+
+	// 공격 몽타주 재생
+	if (AttackMontage)
+	{
+		PlayAnimMontage(AttackMontage);
+	}
 
 	// 단발 쿨타임
 	bCanAttack = false;
@@ -157,12 +177,10 @@ void APlayerCharacter::StartAttack()
 		[this]()
 		{
 			bCanAttack = true;
-
 		},
 		SingleFireCooldown,
 		false
 	);
-
 
 	// 일정 시간 이상 누르면 연사 시작
 	GetWorldTimerManager().SetTimer(
@@ -177,6 +195,13 @@ void APlayerCharacter::StartAttack()
 void APlayerCharacter::StartAutoFire()
 {
 	bIsAutoFiring = true;
+	bIsAttacking = true;
+
+	// 연사 상체 모션 시작
+	if (AutoFireMontage)
+	{
+		PlayAnimMontage(AutoFireMontage);
+	}
 
 	GetWorldTimerManager().SetTimer(
 		AutoFireTimerHandle,
@@ -224,6 +249,10 @@ void APlayerCharacter::StopAttack()
 	{
 		bIsAttacking = false;
 
+		if (AutoFireMontage)
+		{
+			StopAnimMontage(AutoFireMontage);
+		}
 	}
 
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
@@ -346,17 +375,25 @@ void APlayerCharacter::ReloadMana()
 	}
 	//장전상태 트루로 변경
 	bIsReloading = true;
-	UE_LOG(LogTemp, Warning, TEXT("Reload Start"));
+
+	//재장전 몽타주
+	if (ReloadMontage)
+	{
+		PlayAnimMontage(ReloadMontage);
+	}
 
 	PlayReloadSound();
-	//2초후에 장전함수 실행
-	GetWorldTimerManager().SetTimer(
-		ReloadTimerHandle,
-		this,
-		&APlayerCharacter::FinishReload,
-		ReloadTime,
-		false
-	);
+
+
+
+	////2초후에 장전함수 실행
+	//GetWorldTimerManager().SetTimer(
+	//	ReloadTimerHandle,
+	//	this,
+	//	&APlayerCharacter::FinishReload,
+	//	ReloadTime,
+	//	false
+	//);
 }
 //실제 장전 함수 
 void APlayerCharacter::FinishReload()
