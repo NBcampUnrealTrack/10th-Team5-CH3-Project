@@ -98,21 +98,49 @@ void APlayerCharacter::StopSprint()
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
 }
+//ABP
+void APlayerCharacter::FireCurrentWeapon()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	CurrentWeapon->Attack();
+}
+//ABP
+void APlayerCharacter::EndAttackAnimation()
+{
+	bIsAttacking = false;
+	UE_LOG(LogTemp, Warning, TEXT("EndAttackAnimation Called"));
+}
 
 void APlayerCharacter::StartAttack()
 {
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("StartAttack Called / bCanAttack: %s / bIsAttacking: %s"),
+		bCanAttack ? TEXT("true") : TEXT("false"),
+		bIsAttacking ? TEXT("true") : TEXT("false")
+	);
+
 	if (!bCanAttack)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked: bCanAttack false"));
 		return;
 	}
 
 	if (bIsReloading)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked: Reloading"));
 		return;
 	}
 
 	if (!CurrentWeapon)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked: No Weapon"));
 		return;
 	}
 
@@ -127,7 +155,7 @@ void APlayerCharacter::StartAttack()
 	bIsAutoFiring = false;
 
 	// 첫 발 발사
-	CurrentWeapon->Attack();
+	//CurrentWeapon->Attack();
 
 	// 단발 쿨타임
 	bCanAttack = false;
@@ -137,10 +165,13 @@ void APlayerCharacter::StartAttack()
 		[this]()
 		{
 			bCanAttack = true;
+
+			UE_LOG(LogTemp,Warning,TEXT("Attack Cooldown Finished / bCanAttack = true"));
 		},
 		SingleFireCooldown,
 		false
 	);
+
 
 	// 일정 시간 이상 누르면 연사 시작
 	GetWorldTimerManager().SetTimer(
@@ -190,7 +221,7 @@ void APlayerCharacter::StopAttack()
 	// 연사 중이었다면 연사 종료
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
 
-	bIsAttacking = false;
+	//bIsAttacking = false;
 	bIsAutoFiring = false;
 
 	// 다음 공격 입력에서 마법진을 다시 생성할 수 있게 초기화
