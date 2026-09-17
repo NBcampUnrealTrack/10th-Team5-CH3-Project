@@ -118,29 +118,24 @@ void APlayerCharacter::EndAttackAnimation()
 void APlayerCharacter::StartAttack()
 {
 
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("StartAttack Called / bCanAttack: %s / bIsAttacking: %s"),
-		bCanAttack ? TEXT("true") : TEXT("false"),
-		bIsAttacking ? TEXT("true") : TEXT("false")
-	);
-
 	if (!bCanAttack)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked: bCanAttack false"));
+		return;
+	}
+
+	// 이전 공격 애니메이션이 아직 끝나지 않았다면 공격 불가
+	if (bIsAttacking)
+	{
 		return;
 	}
 
 	if (bIsReloading)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked: Reloading"));
 		return;
 	}
 
 	if (!CurrentWeapon)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Attack Blocked: No Weapon"));
 		return;
 	}
 
@@ -154,9 +149,6 @@ void APlayerCharacter::StartAttack()
 	bIsAttacking = true;
 	bIsAutoFiring = false;
 
-	// 첫 발 발사
-	//CurrentWeapon->Attack();
-
 	// 단발 쿨타임
 	bCanAttack = false;
 
@@ -166,7 +158,6 @@ void APlayerCharacter::StartAttack()
 		{
 			bCanAttack = true;
 
-			UE_LOG(LogTemp,Warning,TEXT("Attack Cooldown Finished / bCanAttack = true"));
 		},
 		SingleFireCooldown,
 		false
@@ -216,15 +207,25 @@ void APlayerCharacter::AutoAttack()
 
 void APlayerCharacter::StopAttack()
 {
-	// 아직 연사 시작 전이라면 연사 진입 취소
+	// StopAttack 호출 시점에 연사 중이었는지 기억
+	bool bWasAutoFiring = bIsAutoFiring;
+
+	// 연사 시작 대기 취소
 	GetWorldTimerManager().ClearTimer(AutoFireStartTimerHandle);
-	// 연사 중이었다면 연사 종료
+
+	// 연사 종료
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
 
-	//bIsAttacking = false;
 	bIsAutoFiring = false;
 
-	// 다음 공격 입력에서 마법진을 다시 생성할 수 있게 초기화
+	// 실제 연사 상태였다면
+	// Attack01의 EndAttack Notify를 못 거쳤을 수 있으므로 직접 종료
+	if (bWasAutoFiring)
+	{
+		bIsAttacking = false;
+
+	}
+
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
 	{
 		Staff->ResetCastVFX();
