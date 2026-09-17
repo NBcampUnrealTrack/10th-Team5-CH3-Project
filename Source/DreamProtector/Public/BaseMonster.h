@@ -39,6 +39,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|Damage")
 	virtual void TakeDamage(float DamageAmount);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Monster|Damage")
+	void OnHit();
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Monster|Damage")
 	void Attack();
 

@@ -20,8 +20,6 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	ABaseMonster* Monster = Cast<ABaseMonster>(AIController->GetPawn());
 	if (!Monster) return EBTNodeResult::Failed;
 
-	UE_LOG(LogTemp, Error, TEXT("[BTTask_Attack] Monster 클래스 이름: %s"), *Monster->GetClass()->GetName());
-
 	// 다형성 때문에 실제 몬스터 종류에 맞는 Attack_Imlementation() 자동 실행
 	Monster->Attack();
 

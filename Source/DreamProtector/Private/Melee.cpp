@@ -23,6 +23,8 @@ bool AMelee::IsTargetInMeleeRange() const
     const float DistanceToTarget = GetDistanceTo(Target);
     const float MeleeRange = AttackCollision->GetScaledSphereRadius();
 
+    UE_LOG(LogTemp, Warning, TEXT("[Melee] Distance: %f, MeleeRange: %f"), DistanceToTarget, MeleeRange);
+
     return DistanceToTarget <= MeleeRange;
 }
 

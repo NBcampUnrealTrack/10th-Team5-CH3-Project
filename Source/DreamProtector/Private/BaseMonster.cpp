@@ -71,11 +71,14 @@ void ABaseMonster::TakeDamage(float DamageAmount)
 {// 이미 죽었으면 무시 retrun (중복 데미지 막기)
 	if (CurrentHealth <= 0.0f) return;                        
 	// 받은 데미지만큼 체력 감소
-	CurrentHealth -= DamageAmount;                            
+	CurrentHealth -= DamageAmount;           
+
+	// 데미지 받을 때마다 블루프린트 호출~
+	OnHit();
 
 	if (CurrentHealth <= 0.0f)
 	{ // 체력 0이면 사망
-		Die_Implementation();
+		Die();
 	}
 }
 // 체력 0이하가 되면 takeDamage()에서 호출
