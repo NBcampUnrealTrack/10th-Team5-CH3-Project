@@ -21,7 +21,7 @@ protected:
 	TObjectPtr<USphereComponent> ExplosionCollision;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Suicide")
-	float ExplosionDamage = 50.0f;
+	float ExplosionDamage = 100000.0f;
 
 	virtual void Attack_Implementation() override;
 };

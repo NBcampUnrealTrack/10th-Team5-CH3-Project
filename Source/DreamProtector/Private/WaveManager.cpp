@@ -1,6 +1,7 @@
 #include "WaveManager.h"
 #include "SpawnVolume.h"
 #include "BaseMonster.h"
+#include "Bed.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 
@@ -202,6 +203,22 @@ void AWaveManager::OnWaveTimeExpired()
         Warning,
         TEXT("===== WAVE TIME EXPIRED ===== Wave: %d"),
         CurrentWave
+    );
+
+    // 현재 웨이브의 남은 악몽 수 계산
+    const int32 RemainingCount =
+        FMath::Max(CurrentMonsterCount - KilledMonsterCount, 0);
+
+    // 남은 악몽 1마리당 침대 스트레스 10 증가
+    if (Bed && RemainingCount > 0)
+    {
+        Bed->IncreaseStress(RemainingCount * 10);
+    }
+
+    // HUD의 남은 악몽 수를 0으로 표시
+    OnMonsterCountChanged.Broadcast(
+        0,
+        0
     );
 
     // 마지막 웨이브라면 다음 준비시간과 카운트다운을 예약하지 않음
