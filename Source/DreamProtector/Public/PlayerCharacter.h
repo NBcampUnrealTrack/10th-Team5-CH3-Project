@@ -116,6 +116,10 @@ public:
 	void AutoAttack();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
 	void PlayReloadSound();
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+	void FireCurrentWeapon();
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+	void EndAttackAnimation();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	USceneComponent* GetCastPoint() const
