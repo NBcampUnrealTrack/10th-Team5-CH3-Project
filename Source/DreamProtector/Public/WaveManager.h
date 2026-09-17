@@ -20,6 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 class ABaseMonster;
 class UAudioComponent;
 class USoundBase;
+class ABed;
 
 // 하나의 웨이브에서 사용할 몬스터 정보를 저장하는 구조체
 USTRUCT(BlueprintType)
@@ -161,6 +162,9 @@ protected:
 
     // 현재 음악을 멈추고 새 음악을 재생
     void ChangeBGM(USoundBase* NewMusic);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Bed")
+    TObjectPtr<ABed> Bed;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
