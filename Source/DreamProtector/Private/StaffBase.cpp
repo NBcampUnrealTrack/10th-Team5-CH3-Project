@@ -83,23 +83,34 @@ void AStaffBase::Attack()
     ? HitResult.ImpactPoint
     : TraceEnd;
 
-  // 캐릭터 앞 CastPoint 위치
-  FVector SpawnLocation =
+  // 투사체 시작 위치 = 캐릭터 앞 CastPoint
+  FVector ProjectileSpawnLocation =
     PlayerCharacter->GetCastPoint()->GetComponentLocation();
 
-  // CastPoint → AimPoint 방향
-  FVector FireDirection =
-    (AimPoint - SpawnLocation).GetSafeNormal();
+  // VFX 시작 위치 = 지팡이 끝 MuzzlePoint
+  FVector VFXSpawnLocation =
+    MuzzlePoint->GetComponentLocation();
 
-  FRotator SpawnRotation =
-    FireDirection.Rotation();
+  // 투사체 방향
+  FVector ProjectileDirection =
+    (AimPoint - ProjectileSpawnLocation).GetSafeNormal();
+
+  FRotator ProjectileRotation =
+    ProjectileDirection.Rotation();
+
+  // VFX 방향
+  FVector VFXDirection =
+    (AimPoint - VFXSpawnLocation).GetSafeNormal();
+
+  FRotator VFXRotation =
+    VFXDirection.Rotation();
 
   // 공격 한번에 마법진을 한 번만 생성
   if (!bCastVFXPlayed)
   {
     PlayCastVFX(
-      SpawnLocation,
-      SpawnRotation
+      VFXSpawnLocation,
+      VFXRotation
     );
 
     bCastVFXPlayed = true;
@@ -122,8 +133,8 @@ void AStaffBase::Attack()
 
       // 새로 생성하지 않고 기존 Projectile 재사용
       Projectile->ActivateProjectile(
-        SpawnLocation,
-        SpawnRotation
+        ProjectileSpawnLocation,
+        ProjectileRotation
       );
     }
   }
@@ -131,7 +142,7 @@ void AStaffBase::Attack()
   // 디버그용 조준
   DrawDebugLine(
     GetWorld(),
-    SpawnLocation,
+    ProjectileSpawnLocation,
     AimPoint,
     FColor::Red,
     false,

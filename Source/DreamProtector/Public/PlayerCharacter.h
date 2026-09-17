@@ -10,6 +10,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class AWeaponBase;
 class UInventoryComponent;
+
 //딜리게이트 2개의 값을 전달하겠다는 매크로
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FonManaChanged,
@@ -52,9 +53,6 @@ protected:
 	int32 CurrentMana;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mana")
 	bool bIsReloading = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mana")
-	float ReloadTime = 2.0f;
-	FTimerHandle ReloadTimerHandle;
 
 	// 연사 시작까지 기다리는 타이머
 	FTimerHandle AutoFireStartTimerHandle;
@@ -86,6 +84,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	UInventoryComponent* InventoryComponent;
 
+	//애니메이션 몽타주 장전 및 단발 연발
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* AttackMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* AutoFireMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* ReloadMontage;
+
 
 public:	
 	
@@ -103,6 +109,7 @@ public:
 	float GetCurrentMana()const;
 	bool ConsumeMana();
 	void ReloadMana();
+	UFUNCTION(BlueprintCallable, Category = "Reload")
 	void FinishReload();
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void TryInteract();
@@ -116,7 +123,10 @@ public:
 	void AutoAttack();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
 	void PlayReloadSound();
-
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+	void FireCurrentWeapon();
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+	void EndAttackAnimation();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	USceneComponent* GetCastPoint() const
 	{
@@ -130,4 +140,5 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 	UProjectilePoolComponent* ProjectilePoolComponent;
+
 };
