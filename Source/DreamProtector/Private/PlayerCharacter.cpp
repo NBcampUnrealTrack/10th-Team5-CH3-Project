@@ -5,6 +5,9 @@
 #include "StaffBase.h"
 #include "InventoryComponent.h"
 #include "ProjectilePoolComponent.h"
+#include "EnhancedInputComponent.h"
+#include "InputAction.h"
+#include "Animation/AnimInstance.h"
 #include "Components/ChildActorComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -20,6 +23,12 @@ APlayerCharacter::APlayerCharacter()
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 400.0f;
 	SpringArm->bUsePawnControlRotation = true;
+	SpringArm->SocketOffset = FVector(0.0f, 50.0f, 50.0f);
+
+	// 벽 충돌 대응
+	SpringArm->bDoCollisionTest = true;
+	SpringArm->ProbeChannel = ECC_Camera;
+	SpringArm->ProbeSize = 12.0f;
 
 	//카메라 렉 사용하여 뒤늦게 따라오기 (이동)
 	SpringArm->bEnableCameraLag = true;
@@ -30,9 +39,11 @@ APlayerCharacter::APlayerCharacter()
 
 	//카메라 컴포넌트추가
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
+	Camera->SetRelativeLocation(FVector::ZeroVector);
+	Camera->SetRelativeRotation(FRotator::ZeroRotator);
 
 	//인벤토리 컴포넌트 추가
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
@@ -58,6 +69,8 @@ void APlayerCharacter::BeginPlay()
 	// BP_PlayerCharacter에 붙어있는 Child Actor Component 가져오기
 	UChildActorComponent* StaffWeaponComponent =
 		FindComponentByClass<UChildActorComponent>();
+
+	ApplyControlMode(CurrentControlMode);
 
 	if (StaffWeaponComponent)
 	{
@@ -90,13 +103,61 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	UEnhancedInputComponent* EnhancedInputComponent =
+		Cast<UEnhancedInputComponent>(PlayerInputComponent);
+
+	if (!EnhancedInputComponent)
+	{
+		return;
+	}
+
+	// V키 카메라 모드 변경
+	if (ChangeControlModeAction)
+	{
+		EnhancedInputComponent->BindAction(
+			ChangeControlModeAction,
+			ETriggerEvent::Started,
+			this,
+			&APlayerCharacter::ChangeControlMode
+		);
+	}
 }
 
 //실제 플레이어 이동함수
 void APlayerCharacter::Move(const FVector2D& MovementVector)
 {
-	AddMovementInput(GetActorForwardVector(), MovementVector.X);
-	AddMovementInput(GetActorRightVector(), MovementVector.Y);
+	if (!Controller)
+	{
+		return;
+	}
+
+	//카메라가 바라보는 방향
+	FRotator ControlRotation = Controller->GetControlRotation();
+
+	//위/아래 Pitch는 이동 방향에 사용하지 않음
+	FRotator YawRotation(
+		0.0f,
+		ControlRotation.Yaw,
+		0.0f
+	);
+
+	//카메라 기준 전방 / 우측 방향
+	FVector ForwardDirection =
+		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+	FVector RightDirection =
+		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	//입력 기준
+	AddMovementInput(
+		ForwardDirection,
+		MovementVector.X
+	);
+
+	AddMovementInput(
+		RightDirection,
+		MovementVector.Y
+	);
 }
 
 //실제 플레이어 이동속도 스프린트값으로 증가
@@ -119,16 +180,29 @@ void APlayerCharacter::FireCurrentWeapon()
 	}
 
 	CurrentWeapon->Attack();
+	PlayAttackSound();
 }
 //ABP
 void APlayerCharacter::EndAttackAnimation()
 {
 	bIsAttacking = false;
-	UE_LOG(LogTemp, Warning, TEXT("EndAttackAnimation Called"));
+
+	// 현재 카메라 모드의 회전 설정으로 복귀
+	ApplyControlMode(CurrentControlMode);
 }
 
 void APlayerCharacter::StartAttack()
 {
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("StartAttack / Can:%d Attack:%d Reload:%d"),
+		bCanAttack,
+		bIsAttacking,
+		bIsReloading
+	);
+
+
 	// 쿨타임 중이면 공격 불가
 	if (!bCanAttack)
 	{
@@ -136,7 +210,7 @@ void APlayerCharacter::StartAttack()
 	}
 
 	// 이전 공격 모션이 아직 끝나지 않았다면 공격 불가
-	if (bIsAttacking)
+	if (bIsAttacking || bIsAutoFiring)
 	{
 		return;
 	}
@@ -163,10 +237,37 @@ void APlayerCharacter::StartAttack()
 	bIsAttacking = true;
 	bIsAutoFiring = false;
 
+	// 공격 중에는 카메라가 보는 방향으로 캐릭터 고정
+	bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+	}
+
 	// 공격 몽타주 재생
 	if (AttackMontage)
 	{
-		PlayAnimMontage(AttackMontage);
+		float MontageDuration = PlayAnimMontage(AttackMontage);
+		
+		if (MontageDuration > 0.0f)
+		{
+			if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+			{
+				FOnMontageEnded EndDelegate;
+
+				EndDelegate.BindUObject(
+					this,
+					&APlayerCharacter::OnAttackMontageEnded
+				);
+
+				AnimInstance->Montage_SetEndDelegate(
+					EndDelegate,
+					AttackMontage
+				);
+			}
+		}
 	}
 
 	// 단발 쿨타임
@@ -194,8 +295,18 @@ void APlayerCharacter::StartAttack()
 
 void APlayerCharacter::StartAutoFire()
 {
+	// 단발 공격 몽타주에서 연사 몽타주로 전환
 	bIsAutoFiring = true;
 	bIsAttacking = true;
+
+	// 연사 중에는 카메라 바라보는 방향으로 몸 고정
+	bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+	}
 
 	// 연사 상체 모션 시작
 	if (AutoFireMontage)
@@ -228,32 +339,30 @@ void APlayerCharacter::AutoAttack()
 	}
 
 	CurrentWeapon->Attack();
+	PlayAttackSound();
 }
 
 void APlayerCharacter::StopAttack()
 {
-	// StopAttack 호출 시점에 연사 중이었는지 기억
-	bool bWasAutoFiring = bIsAutoFiring;
-
 	// 연사 시작 대기 취소
 	GetWorldTimerManager().ClearTimer(AutoFireStartTimerHandle);
 
 	// 연사 종료
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
 
-	bIsAutoFiring = false;
-
 	// 실제 연사 상태였다면
 	// Attack01의 EndAttack Notify를 못 거쳤을 수 있으므로 직접 종료
-	if (bWasAutoFiring)
+	if (bIsAutoFiring && AutoFireMontage)
 	{
-		bIsAttacking = false;
-
-		if (AutoFireMontage)
-		{
-			StopAnimMontage(AutoFireMontage);
-		}
+		StopAnimMontage(AutoFireMontage);
 	}
+
+	bIsAutoFiring = false;
+	bIsAttacking = false;
+
+
+	// 현재 카메라 모드 회전 설정으로 복귀
+	ApplyControlMode(CurrentControlMode);
 
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
 	{
@@ -383,17 +492,6 @@ void APlayerCharacter::ReloadMana()
 	}
 
 	PlayReloadSound();
-
-
-
-	////2초후에 장전함수 실행
-	//GetWorldTimerManager().SetTimer(
-	//	ReloadTimerHandle,
-	//	this,
-	//	&APlayerCharacter::FinishReload,
-	//	ReloadTime,
-	//	false
-	//);
 }
 //실제 장전 함수 
 void APlayerCharacter::FinishReload()
@@ -406,4 +504,188 @@ void APlayerCharacter::FinishReload()
 	OnManaChanged.Broadcast(CurrentMana, MaxMana);
 
 	UE_LOG(LogTemp, Warning, TEXT("Reload Complete! Mana: %d / &d"), CurrentMana, MaxMana);
+}
+
+
+void APlayerCharacter::ChangeControlMode()
+{
+	switch (CurrentControlMode)
+	{
+	case EPlayControlMode::ThirdPerson:
+		ApplyControlMode(EPlayControlMode::FirstPerson);
+		break;
+
+	case EPlayControlMode::FirstPerson:
+		ApplyControlMode(EPlayControlMode::Shoulder);
+		break;
+
+	case EPlayControlMode::Shoulder:
+		ApplyControlMode(EPlayControlMode::ThirdPerson);
+		break;
+
+	default:
+		ApplyControlMode(EPlayControlMode::ThirdPerson);
+		break;
+	}
+}
+
+void APlayerCharacter::ApplyControlMode(EPlayControlMode NewControlMode)
+{
+	// 필요한 컴포넌트 확인
+	UCharacterMovementComponent* MovementComponent =
+		GetCharacterMovement();
+
+	if (!MovementComponent || !SpringArm || !Camera)
+	{
+		return;
+	}
+
+	// 현재 모드 변경
+	CurrentControlMode = NewControlMode;
+
+	switch (CurrentControlMode)
+	{
+
+		// 3인칭
+	case EPlayControlMode::ThirdPerson:
+	{
+		// TopDown에서 사용했던 절대 회전 해제
+		SpringArm->SetUsingAbsoluteRotation(false);
+
+		// 마우스 회전을 카메라가 따라감
+		SpringArm->bUsePawnControlRotation = true;
+
+		// 벽 충돌 활성화
+		SpringArm->bDoCollisionTest = true;
+
+		// 기본 TPS 거리
+		SpringArm->TargetArmLength = 400.0f;
+
+		// 캐릭터보다 조금 높은 위치
+		SpringArm->TargetOffset =
+			FVector(0.0f, 0.0f, 60.0f);
+
+		//기존에 사용하던 TPS Offset
+		SpringArm->SocketOffset =
+			FVector(0.0f, 0.0f, 50.0f);
+
+		Camera->SetFieldOfView(90.0f);
+
+		// 카메라를 돌려도 캐릭터가 바로 따라 돌지 않음
+		bUseControllerRotationYaw = false;
+
+		// 이동 방향으로 몸 회전
+		MovementComponent->bOrientRotationToMovement = true;
+		MovementComponent->bUseControllerDesiredRotation = false;
+
+		// 1인칭에서 숨겼던 Mesh 다시 표시
+		GetMesh()->SetOwnerNoSee(false);
+
+		break;
+	}
+
+	// 1인칭
+	case EPlayControlMode::FirstPerson:
+	{
+		SpringArm->SetUsingAbsoluteRotation(false);
+
+		SpringArm->bUsePawnControlRotation = true;
+
+		// ArmLength 0이므로 충돌 검사
+		SpringArm->bDoCollisionTest = false;
+
+		// 캐릭터 위치까지 카메라 이동
+		SpringArm->TargetArmLength = 0.0f;
+
+		// 눈높이
+		SpringArm->TargetOffset =
+			FVector(
+				0.0f,
+				0.0f,
+				BaseEyeHeight
+			);
+
+		SpringArm->SocketOffset =
+			FVector::ZeroVector;
+
+		Camera->SetFieldOfView(90.0f);
+
+		// 마우스 Yaw를 캐릭터도 따라감
+		bUseControllerRotationYaw = true;
+
+		// 이동 방향 자동 회전 OFF
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+
+		// 몸이 카메라를 가리지 않도록
+		GetMesh()->SetOwnerNoSee(true);
+
+		break;
+	}
+
+	// 숄더 / 조준
+	case EPlayControlMode::Shoulder:
+	{
+		SpringArm->SetUsingAbsoluteRotation(false);
+
+		SpringArm->bUsePawnControlRotation = true;
+
+		SpringArm->bDoCollisionTest = true;
+
+		// 일반 TPS보다 가까이
+		SpringArm->TargetArmLength = 220.0f;
+
+		SpringArm->TargetOffset =
+			FVector(
+				0.0f,
+				0.0f,
+				60.0f
+			);
+
+		// 오른쪽 어깨 방향
+		SpringArm->SocketOffset =
+			FVector(
+				0.0f,
+				90.0f,
+				0.0f
+			);
+
+		//FOV 좁게 사용
+		Camera->SetFieldOfView(80.0f);
+
+		// 조준 방향으로 캐릭터 몸도 회전
+		bUseControllerRotationYaw = true;
+
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+
+		GetMesh()->SetOwnerNoSee(false);
+
+		break;
+	}
+
+	default:
+		break;
+	}
+}
+
+void APlayerCharacter::OnAttackMontageEnded(
+	UAnimMontage* Montage,
+	bool bInterrupted
+)
+{
+	// 연사로 넘어간 상태가 아니라면 단발 공격 종료
+	if (!bIsAutoFiring)
+	{
+		bIsAttacking = false;
+
+		ApplyControlMode(CurrentControlMode);
+	}
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Attack Montage Ended / Interrupted: %d"),
+		bInterrupted
+	);
 }
