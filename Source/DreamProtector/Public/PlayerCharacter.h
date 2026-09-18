@@ -139,6 +139,8 @@ public:
 	void AutoAttack();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
 	void PlayReloadSound();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
+	void PlayAttackSound();
 	UFUNCTION(BlueprintCallable, Category = "Attack")
 	void FireCurrentWeapon();
 	UFUNCTION(BlueprintCallable, Category = "Attack")
