@@ -492,6 +492,12 @@ void APlayerCharacter::ReloadMana()
 	}
 
 	PlayReloadSound();
+
+	// 현재 무기의 장전 이펙트 실행
+	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
+	{
+		Staff->PlayReloadVFX();
+	}
 }
 //실제 장전 함수 
 void APlayerCharacter::FinishReload()
