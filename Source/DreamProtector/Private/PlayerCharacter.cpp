@@ -180,6 +180,7 @@ void APlayerCharacter::FireCurrentWeapon()
 	}
 
 	CurrentWeapon->Attack();
+	PlayAttackSound();
 }
 //ABP
 void APlayerCharacter::EndAttackAnimation()
@@ -338,6 +339,7 @@ void APlayerCharacter::AutoAttack()
 	}
 
 	CurrentWeapon->Attack();
+	PlayAttackSound();
 }
 
 void APlayerCharacter::StopAttack()
