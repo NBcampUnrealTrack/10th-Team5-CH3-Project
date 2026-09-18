@@ -18,6 +18,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
 	void PlayCastVFX(FVector Location, FRotator Rotation);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "VFX")
+	void PlayReloadVFX();
+
 
 
 	// 공격키를 뗐을 때 VFX 생성 가능 상태로 초기화
