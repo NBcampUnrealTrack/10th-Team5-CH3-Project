@@ -52,3 +52,22 @@ int32 ABed::GetMaxStress() const
 {
 	return MaxStress;
 }
+
+void ABed::DecreaseStress(int32 amount)
+{
+	CurrentStress = FMath::Clamp(
+		CurrentStress - amount,
+		0,
+		MaxStress
+	);
+
+	OnStressChganged.Broadcast(CurrentStress, MaxStress);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Bed Stress Decreased: %d / %d"),
+		CurrentStress,
+		MaxStress
+	);
+}

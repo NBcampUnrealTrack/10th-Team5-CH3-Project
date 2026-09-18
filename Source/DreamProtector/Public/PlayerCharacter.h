@@ -13,6 +13,7 @@ class UInventoryComponent;
 class UAnimMontage;
 class UInputAction;
 class AWindupBomb;
+class ABarricade;
 //딜리게이트 2개의 값을 전달하겠다는 매크로
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FonManaChanged,
@@ -110,6 +111,9 @@ protected:
 	// 월드에 생성할 태엽 폭탄 클래스
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	TSubclassOf<AWindupBomb> WindupBombClass;
+	// 실제 월드에 설치할 바리케이드 클래스
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	TSubclassOf<ABarricade> BarricadeClass;
 
 	// 설치형 아이템을 플레이어 앞에 생성할 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
