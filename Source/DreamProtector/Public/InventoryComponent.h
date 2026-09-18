@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItems(FName ItemKey, int32 Count);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool HasEnoughItem(FName ItemKey, int32 RequiredCount) const;
+
 protected:
 	//인벤토리에 들어온 아이템의 Key들을 저장하는 배열
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
