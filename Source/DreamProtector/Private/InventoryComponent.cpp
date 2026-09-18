@@ -68,3 +68,16 @@ bool UInventoryComponent::HasEnoughItem(FName ItemKey, int32 RequiredCount) cons
 
     return CurrentCount >= RequiredCount;
 }
+
+const FItemData* UInventoryComponent::FindItemData(FName ItemKey) const
+{
+    if (!ItemDataTable || ItemKey.IsNone())
+    {
+        return nullptr;
+    }
+
+    return ItemDataTable->FindRow<FItemData>(
+        ItemKey,
+        TEXT("InventoryComponent::FindItemData")
+    );
+}

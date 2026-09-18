@@ -689,3 +689,8 @@ void APlayerCharacter::OnAttackMontageEnded(
 		bInterrupted
 	);
 }
+
+bool APlayerCharacter::UseItem(FName ItemKey)
+{
+	return false;
+}
