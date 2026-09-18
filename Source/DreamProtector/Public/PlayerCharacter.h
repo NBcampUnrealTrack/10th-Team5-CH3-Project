@@ -10,6 +10,8 @@ class USpringArmComponent;
 class UCameraComponent;
 class AWeaponBase;
 class UInventoryComponent;
+class UAnimMontage;
+class UInputAction;
 
 //딜리게이트 2개의 값을 전달하겠다는 매크로
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
@@ -17,6 +19,14 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	int32, CurrentMana,
 	int32, MaxMana
 );
+
+UENUM(BlueprintType)
+enum class EPlayControlMode : uint8
+{
+	ThirdPerson UMETA(DisplayName = "Third Person"),
+	FirstPerson UMETA(DisplayName = "First Person"),
+	Shoulder UMETA(DisplayName = "Shoulder / Aim")
+};
 UCLASS()
 class DREAMPROTECTOR_API APlayerCharacter : public ACharacter
 {
@@ -92,6 +102,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ReloadMontage;
 
+	//현재 모드
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	EPlayControlMode CurrentControlMode = EPlayControlMode::ThirdPerson;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* ChangeControlModeAction;
+
 
 public:	
 	
@@ -140,5 +156,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 	UProjectilePoolComponent* ProjectilePoolComponent;
+
+	//시점에 관한 함수
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void ChangeControlMode();
+
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void ApplyControlMode(EPlayControlMode NewControlMode);
 
 };
