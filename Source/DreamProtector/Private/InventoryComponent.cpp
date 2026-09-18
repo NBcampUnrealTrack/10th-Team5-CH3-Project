@@ -60,3 +60,11 @@ bool UInventoryComponent::RemoveItems(FName ItemKey, int32 Count)
 
     return true;
 }
+
+
+bool UInventoryComponent::HasEnoughItem(FName ItemKey, int32 RequiredCount) const
+{
+    const int32 CurrentCount = GetItemCount(ItemKey);
+
+    return CurrentCount >= RequiredCount;
+}
