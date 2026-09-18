@@ -7,6 +7,7 @@
 #include "ProjectilePoolComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
+#include "Animation/AnimInstance.h"
 #include "Components/ChildActorComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -191,6 +192,16 @@ void APlayerCharacter::EndAttackAnimation()
 
 void APlayerCharacter::StartAttack()
 {
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("StartAttack / Can:%d Attack:%d Reload:%d"),
+		bCanAttack,
+		bIsAttacking,
+		bIsReloading
+	);
+
+
 	// 쿨타임 중이면 공격 불가
 	if (!bCanAttack)
 	{
@@ -198,7 +209,7 @@ void APlayerCharacter::StartAttack()
 	}
 
 	// 이전 공격 모션이 아직 끝나지 않았다면 공격 불가
-	if (bIsAttacking)
+	if (bIsAttacking || bIsAutoFiring)
 	{
 		return;
 	}
@@ -237,7 +248,25 @@ void APlayerCharacter::StartAttack()
 	// 공격 몽타주 재생
 	if (AttackMontage)
 	{
-		PlayAnimMontage(AttackMontage);
+		float MontageDuration = PlayAnimMontage(AttackMontage);
+		
+		if (MontageDuration > 0.0f)
+		{
+			if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+			{
+				FOnMontageEnded EndDelegate;
+
+				EndDelegate.BindUObject(
+					this,
+					&APlayerCharacter::OnAttackMontageEnded
+				);
+
+				AnimInstance->Montage_SetEndDelegate(
+					EndDelegate,
+					AttackMontage
+				);
+			}
+		}
 	}
 
 	// 단발 쿨타임
@@ -265,9 +294,18 @@ void APlayerCharacter::StartAttack()
 
 void APlayerCharacter::StartAutoFire()
 {
+	// 단발 공격 몽타주에서 연사 몽타주로 전환
 	bIsAutoFiring = true;
 	bIsAttacking = true;
 
+	// 연사 중에는 카메라 바라보는 방향으로 몸 고정
+	bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+	}
 
 	// 연사 상체 모션 시작
 	if (AutoFireMontage)
@@ -304,29 +342,25 @@ void APlayerCharacter::AutoAttack()
 
 void APlayerCharacter::StopAttack()
 {
-	// StopAttack 호출 시점에 연사 중이었는지 기억
-	bool bWasAutoFiring = bIsAutoFiring;
-
 	// 연사 시작 대기 취소
 	GetWorldTimerManager().ClearTimer(AutoFireStartTimerHandle);
 
 	// 연사 종료
 	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
 
-	bIsAutoFiring = false;
-
 	// 실제 연사 상태였다면
 	// Attack01의 EndAttack Notify를 못 거쳤을 수 있으므로 직접 종료
-	if (bWasAutoFiring)
+	if (bIsAutoFiring && AutoFireMontage)
 	{
-		bIsAttacking = false;
-
-		if (AutoFireMontage)
-		{
-			StopAnimMontage(AutoFireMontage);
-		}
-		ApplyControlMode(CurrentControlMode);
+		StopAnimMontage(AutoFireMontage);
 	}
+
+	bIsAutoFiring = false;
+	bIsAttacking = false;
+
+
+	// 현재 카메라 모드 회전 설정으로 복귀
+	ApplyControlMode(CurrentControlMode);
 
 	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
 	{
@@ -531,7 +565,7 @@ void APlayerCharacter::ApplyControlMode(EPlayControlMode NewControlMode)
 
 		//기존에 사용하던 TPS Offset
 		SpringArm->SocketOffset =
-			FVector(0.0f, 50.0f, 50.0f);
+			FVector(0.0f, 0.0f, 50.0f);
 
 		Camera->SetFieldOfView(90.0f);
 
@@ -631,4 +665,25 @@ void APlayerCharacter::ApplyControlMode(EPlayControlMode NewControlMode)
 	default:
 		break;
 	}
+}
+
+void APlayerCharacter::OnAttackMontageEnded(
+	UAnimMontage* Montage,
+	bool bInterrupted
+)
+{
+	// 연사로 넘어간 상태가 아니라면 단발 공격 종료
+	if (!bIsAutoFiring)
+	{
+		bIsAttacking = false;
+
+		ApplyControlMode(CurrentControlMode);
+	}
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Attack Montage Ended / Interrupted: %d"),
+		bInterrupted
+	);
 }

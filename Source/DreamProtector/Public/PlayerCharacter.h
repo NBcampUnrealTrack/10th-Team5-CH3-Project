@@ -164,4 +164,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	void ApplyControlMode(EPlayControlMode NewControlMode);
 
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 };
