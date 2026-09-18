@@ -4,6 +4,8 @@
 #include "Bed.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
+#include "Engine/SpotLight.h"
+#include "Components/LightComponent.h"
 
 AWaveManager::AWaveManager()
 {
@@ -152,6 +154,7 @@ void AWaveManager::BeginPlay()
     UE_LOG(LogTemp, Warning, TEXT("===== WaveManager BeginPlay ====="));
 
     ChangeBGM(TutorialBGM);
+    ChangeWaveLightColor(PreparationLightColor);
 
     UpdateCurrentMonsterCount();
 
@@ -226,12 +229,14 @@ void AWaveManager::OnWaveTimeExpired()
     {
         // 마지막 웨이브가 끝났다면 음악 정지
         ChangeBGM(nullptr);
+        ChangeWaveLightColor(PreparationLightColor);
 
         // 스테이지 클리어 처리가 필요하다면 이 분기에서 별도로 실행
         return;
     }
 
     ChangeBGM(PreparationBGM);
+    ChangeWaveLightColor(PreparationLightColor);
 
     // 준비시간 42초에 다음 웨이브의 3 → 2 → 1 연출 시작
     GetWorldTimerManager().SetTimer(
@@ -261,6 +266,7 @@ void AWaveManager::StartFirstWave()
     );
 
     ChangeBGM(BattleBGM);
+    ChangeWaveLightColor(BattleLightColor);
 
     UpdateCurrentMonsterCount();
     // Wave 1 몬스터 스폰
@@ -288,6 +294,7 @@ void AWaveManager::StartNextWave()
     );
 
     ChangeBGM(BattleBGM);
+    ChangeWaveLightColor(BattleLightColor);
 
     UpdateCurrentMonsterCount();
     // 다음 웨이브 몬스터 스폰
@@ -349,5 +356,21 @@ void AWaveManager::ChangeBGM(USoundBase* NewMusic)
     if (NewMusic)
     {
         BGMComponent->Play();
+    }
+}
+
+void AWaveManager::ChangeWaveLightColor(const FLinearColor& NewColor)
+{
+    // 에디터에서 조명을 연결하지 않았다면 아무 작업도 하지 않음
+    if (!WaveSpotLight)
+    {
+        return;
+    }
+
+    ULightComponent* LightComponent = WaveSpotLight->GetLightComponent();
+
+    if (LightComponent)
+    {
+        LightComponent->SetLightColor(NewColor, false);
     }
 }
