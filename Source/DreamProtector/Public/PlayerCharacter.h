@@ -12,7 +12,7 @@ class AWeaponBase;
 class UInventoryComponent;
 class UAnimMontage;
 class UInputAction;
-
+class AWindupBomb;
 //딜리게이트 2개의 값을 전달하겠다는 매크로
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FonManaChanged,
@@ -107,7 +107,13 @@ protected:
 	EPlayControlMode CurrentControlMode = EPlayControlMode::ThirdPerson;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* ChangeControlModeAction;
+	// 월드에 생성할 태엽 폭탄 클래스
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	TSubclassOf<AWindupBomb> WindupBombClass;
 
+	// 설치형 아이템을 플레이어 앞에 생성할 거리
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	float ItemSpawnDistance = 150.0f;
 
 public:	
 	
@@ -167,5 +173,6 @@ public:
 	void ApplyControlMode(EPlayControlMode NewControlMode);
 
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
+	UFUNCTION(BlueprintCallable, Category = "Item")
+	bool UseItem(FName ItemKey);
 };
