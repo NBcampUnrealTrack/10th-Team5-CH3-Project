@@ -51,5 +51,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Stress")
 	void IncreaseStress(int32 amount);
+	UFUNCTION(BlueprintCallable, Category = "Stress")
+	void DecreaseStress(int32 amount);
 
 };

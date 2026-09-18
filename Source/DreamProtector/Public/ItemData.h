@@ -6,6 +6,15 @@
 
 
 UENUM(BlueprintType)
+enum class EItemUseType : uint8
+{
+    None        UMETA(DisplayName = "사용 불가"),
+    WindupBomb  UMETA(DisplayName = "태엽 폭탄"),
+    Barricade   UMETA(DisplayName = "바리케이드"),
+    SleepLamp   UMETA(DisplayName = "수면등")
+};
+
+UENUM(BlueprintType)
 enum class EItemType : uint8
 {
     Material    UMETA(DisplayName = "재료"),
@@ -34,4 +43,7 @@ struct DREAMPROTECTOR_API FItemData : public FTableRowBase
     //아이템 아이콘
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     TObjectPtr<UTexture2D>Icon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+    EItemUseType UseType = EItemUseType::None;
 };
