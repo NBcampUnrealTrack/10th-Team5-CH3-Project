@@ -21,6 +21,7 @@ class ABaseMonster;
 class UAudioComponent;
 class USoundBase;
 class ABed;
+class ASpotLight;
 
 // 하나의 웨이브에서 사용할 몬스터 정보를 저장하는 구조체
 USTRUCT(BlueprintType)
@@ -165,6 +166,23 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Bed")
     TObjectPtr<ABed> Bed;
+
+    // 맵에 배치한 스포트라이트를 연결하는 변수
+    UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Wave|Light")
+    TObjectPtr<ASpotLight> WaveSpotLight;
+
+    // 튜토리얼과 준비시간에 사용할 색
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Light")
+    FLinearColor PreparationLightColor =
+        FLinearColor::FromSRGBColor(FColor(255, 212, 168, 255));
+
+    // 전투 중 사용할 색
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Light")
+    FLinearColor BattleLightColor =
+        FLinearColor::FromSRGBColor(FColor(216, 162, 255, 255));
+
+    // 조명 색을 변경하는 함수
+    void ChangeWaveLightColor(const FLinearColor& NewColor);
 
 public:	
 	virtual void Tick(float DeltaTime) override;
