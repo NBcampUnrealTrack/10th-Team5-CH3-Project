@@ -20,6 +20,12 @@ APlayerCharacter::APlayerCharacter()
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 400.0f;
 	SpringArm->bUsePawnControlRotation = true;
+	SpringArm->SocketOffset = FVector(0.0f, 50.0f, 50.0f);
+
+	// 벽 충돌 대응
+	SpringArm->bDoCollisionTest = true;
+	SpringArm->ProbeChannel = ECC_Camera;
+	SpringArm->ProbeSize = 12.0f;
 
 	//카메라 렉 사용하여 뒤늦게 따라오기 (이동)
 	SpringArm->bEnableCameraLag = true;
@@ -30,9 +36,11 @@ APlayerCharacter::APlayerCharacter()
 
 	//카메라 컴포넌트추가
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
+	Camera->SetRelativeLocation(FVector::ZeroVector);
+	Camera->SetRelativeRotation(FRotator::ZeroRotator);
 
 	//인벤토리 컴포넌트 추가
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
