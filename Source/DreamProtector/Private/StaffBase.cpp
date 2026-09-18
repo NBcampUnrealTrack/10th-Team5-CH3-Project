@@ -139,7 +139,7 @@ void AStaffBase::Attack()
     }
   }
 
-  // 디버그용 조준
+  /* 디버그용 조준
   DrawDebugLine(
     GetWorld(),
     ProjectileSpawnLocation,
@@ -149,5 +149,5 @@ void AStaffBase::Attack()
     2.0f,
     0,
     2.0f
-  );
+  );*/
 }

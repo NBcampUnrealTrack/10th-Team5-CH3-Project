@@ -44,7 +44,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
-	float Damage = 50.0f;
+	float Damage = 100.0f;
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void ActivateProjectile(
