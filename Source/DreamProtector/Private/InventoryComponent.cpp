@@ -13,6 +13,8 @@ void UInventoryComponent::AddItem(FName ItemKey)
 	ItemKeys.Add(ItemKey);
 
 	UE_LOG(LogTemp, Warning, TEXT("Item Added: %s"), *ItemKey.ToString());
+
+    OnInventoryChanged.Broadcast();
 }
 
 
@@ -57,6 +59,7 @@ bool UInventoryComponent::RemoveItems(FName ItemKey, int32 Count)
             }
         }
     }
+    OnInventoryChanged.Broadcast();
 
     return true;
 }

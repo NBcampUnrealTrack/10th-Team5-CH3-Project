@@ -39,6 +39,12 @@ public:
 	UInputAction* ReloadAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* InventoryAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UseSlot1Action;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UseSlot2Action;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UseSlot3Action;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UUserWidget> InventoryWidgetClass;
@@ -74,7 +80,12 @@ private:
 	void StopAttack();
 	UFUNCTION()
 	void Reload();
-
+	UFUNCTION()
+	void UseSlot1();
+	UFUNCTION()
+	void UseSlot2();
+	UFUNCTION()
+	void UseSlot3();
 	UFUNCTION()
 	void Inventory();
 };
