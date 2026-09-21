@@ -106,15 +106,15 @@ void AStaffBase::Attack()
     VFXDirection.Rotation();
 
   // 공격 한번에 마법진을 한 번만 생성
-  if (!bCastVFXPlayed)
-  {
-    PlayCastVFX(
-      VFXSpawnLocation,
-      VFXRotation
-    );
-
-    bCastVFXPlayed = true;
-  }
+  //if (!bCastVFXPlayed)
+  //{
+  //  PlayCastVFX(
+  //    VFXSpawnLocation,
+  //    VFXRotation
+  //  );
+  //
+  //  bCastVFXPlayed = true;
+  //}
 
   // 플레이어가 가지고 있는 Projectile Pool 가져오기
   UProjectilePoolComponent* Pool =
@@ -136,10 +136,21 @@ void AStaffBase::Attack()
         ProjectileSpawnLocation,
         ProjectileRotation
       );
+
+      Projectile->ActivateProjectile(
+          ProjectileSpawnLocation,
+          ProjectileRotation
+      );
+
+      // 투사체가 발사될 때마다 이펙트 재생
+      PlayCastVFX(
+          VFXSpawnLocation,
+          VFXRotation
+      );
     }
   }
 
-  // 디버그용 조준
+  /* 디버그용 조준
   DrawDebugLine(
     GetWorld(),
     ProjectileSpawnLocation,
@@ -149,5 +160,5 @@ void AStaffBase::Attack()
     2.0f,
     0,
     2.0f
-  );
+  );*/
 }

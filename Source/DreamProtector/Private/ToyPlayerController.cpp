@@ -75,6 +75,26 @@ void AToyPlayerController::BeginPlay()
 			HUDWidget->AddToViewport();
 		}
 	}
+
+	if (TutorialWidgetClass)
+	{
+		TutorialWidget = CreateWidget<UUserWidget>(
+			this,
+			TutorialWidgetClass
+		);
+
+		if (TutorialWidget)
+		{
+			// MainHUD보다 앞에 표시
+			TutorialWidget->AddToViewport(10);
+
+			// 게임 입력과 UI 입력을 함께 사용
+			UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(this);
+
+			// Next 버튼을 클릭할 수 있도록 커서 표시
+			bShowMouseCursor = true;
+		}
+	}
 }
 
 //PlayerController의 입력 설정을 초기화 할때 호출되는 함수(바인딩함수)
@@ -179,6 +199,37 @@ void AToyPlayerController::SetupInputComponent()
 				&AToyPlayerController::Inventory
 			);
 		}
+
+		if (UseSlot1Action)
+		{
+			EnhancedInputComponent->BindAction(
+				UseSlot1Action,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::UseSlot1
+			);
+		}
+
+		if (UseSlot2Action)
+		{
+			EnhancedInputComponent->BindAction(
+				UseSlot2Action,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::UseSlot2
+			);
+		}
+
+		if (UseSlot3Action)
+		{
+			EnhancedInputComponent->BindAction(
+				UseSlot3Action,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::UseSlot3
+			);
+		}
+
 	}
 }
 
@@ -298,5 +349,40 @@ void AToyPlayerController::Inventory()
 		FInputModeGameAndUI InputMode;
 		InputMode.SetHideCursorDuringCapture(false);
 		SetInputMode(InputMode);
+	}
+}
+
+void AToyPlayerController::UseSlot1()
+{
+	APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn());
+
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->UseItem(TEXT("WindupBomb"));
+	}
+}
+
+void AToyPlayerController::UseSlot2()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Slot2 Pressed"));
+
+	APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn());
+
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->UseItem(TEXT("Barricade"));
+	}
+}
+
+void AToyPlayerController::UseSlot3()
+{
+	APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn());
+
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->UseItem(TEXT("SleepLamp"));
 	}
 }

@@ -10,6 +10,8 @@
 class UInputMappingContext;
 class UInputAction;
 class UUserWidget;
+
+
 UCLASS()
 class DREAMPROTECTOR_API AToyPlayerController : public APlayerController
 {
@@ -37,6 +39,12 @@ public:
 	UInputAction* ReloadAction;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* InventoryAction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UseSlot1Action;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UseSlot2Action;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UseSlot3Action;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UUserWidget> InventoryWidgetClass;
@@ -48,6 +56,14 @@ public:
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 	UPROPERTY()
 	UUserWidget* HUDWidget;
+
+	// 에디터에서 사용할 튜토리얼 WBP를 지정하는 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> TutorialWidgetClass;
+
+	// 실제로 생성한 튜토리얼 위젯을 보관하는 변수
+	UPROPERTY()
+	UUserWidget* TutorialWidget = nullptr;
 
 protected:
 	virtual void BeginPlay() override;
@@ -72,7 +88,12 @@ private:
 	void StopAttack();
 	UFUNCTION()
 	void Reload();
-
+	UFUNCTION()
+	void UseSlot1();
+	UFUNCTION()
+	void UseSlot2();
+	UFUNCTION()
+	void UseSlot3();
 	UFUNCTION()
 	void Inventory();
 };

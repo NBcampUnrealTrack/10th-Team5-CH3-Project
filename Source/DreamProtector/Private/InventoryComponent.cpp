@@ -13,6 +13,8 @@ void UInventoryComponent::AddItem(FName ItemKey)
 	ItemKeys.Add(ItemKey);
 
 	UE_LOG(LogTemp, Warning, TEXT("Item Added: %s"), *ItemKey.ToString());
+
+    OnInventoryChanged.Broadcast();
 }
 
 
@@ -57,6 +59,28 @@ bool UInventoryComponent::RemoveItems(FName ItemKey, int32 Count)
             }
         }
     }
+    OnInventoryChanged.Broadcast();
 
     return true;
+}
+
+
+bool UInventoryComponent::HasEnoughItem(FName ItemKey, int32 RequiredCount) const
+{
+    const int32 CurrentCount = GetItemCount(ItemKey);
+
+    return CurrentCount >= RequiredCount;
+}
+
+const FItemData* UInventoryComponent::FindItemData(FName ItemKey) const
+{
+    if (!ItemDataTable || ItemKey.IsNone())
+    {
+        return nullptr;
+    }
+
+    return ItemDataTable->FindRow<FItemData>(
+        ItemKey,
+        TEXT("InventoryComponent::FindItemData")
+    );
 }
