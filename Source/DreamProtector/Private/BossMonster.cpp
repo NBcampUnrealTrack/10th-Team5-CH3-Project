@@ -194,6 +194,49 @@ void ABossMonster::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bIsGrowing && GetMesh())
+	{
+		GrowElapsedTime += DeltaTime;
+
+		const float Alpha = GrowDuration > 0.0f
+			? FMath::Clamp(
+				GrowElapsedTime / GrowDuration,
+				0.0f,
+				1.0f
+			)
+			: 1.0f;
+
+		const float SmoothAlpha =
+			Alpha * Alpha * (3.0f - 2.0f * Alpha);
+
+		// 크기와 위치에 동일한 진행률 사용
+		GetMesh()->SetRelativeScale3D(
+			FMath::Lerp(
+				GrowStartScale,
+				FVector(TargetMeshScale),
+				SmoothAlpha
+			)
+		);
+
+		SetActorLocation(
+			FMath::Lerp(
+				GrowStartLocation,
+				AnchorLocation,
+				SmoothAlpha
+			)
+		);
+
+		if (Alpha >= 1.0f)
+		{
+			GetMesh()->SetRelativeScale3D(
+				FVector(TargetMeshScale)
+			);
+			SetActorLocation(AnchorLocation);
+
+			bIsGrowing = false;
+		}
+	}
+
 	if (CurrentIntroState == EBossIntroState::Lunging)
 	{
 		//const FVector NewLoc = FMath::VInterpConstantTo(GetActorLocation(), LungeTargetLocation, DeltaTime, IntroMoveSpeed);
@@ -223,33 +266,57 @@ void ABossMonster::Tick(float DeltaTime)
 
 	else if (CurrentIntroState == EBossIntroState::Rising)
 	{
-		const FVector NewLoc = FMath::VInterpConstantTo(GetActorLocation(), AnchorLocation, DeltaTime, IntroMoveSpeed);
-		SetActorLocation(NewLoc);
-
-		if (FVector::Dist(GetActorLocation(), AnchorLocation) <= IntroArrivalTolerance)
+		// 성장과 상승이 모두 끝나면 등장 완료
+		if (!bIsGrowing)
 		{
-			// 상승 완료 -> 등장 씬 종료
 			CurrentIntroState = EBossIntroState::Done;
 			bIntroFinished = true;
 
-			if (AAIController* AIController = Cast<AAIController>(GetController()))
+			if (AAIController* AIController =
+				Cast<AAIController>(GetController()))
 			{
-				if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
+				if (UBlackboardComponent* BB =
+					AIController->GetBlackboardComponent())
 				{
-					BB->SetValueAsBool(TEXT("bIntroFinished"), true);
+					BB->SetValueAsBool(
+						TEXT("bIntroFinished"),
+						true
+					);
 				}
 			}
 		}
 	}
 }
 
+//void ABossMonster::BeginRisingPhase()
+//{
+//	CurrentIntroState = EBossIntroState::Rising;
+//
+//	if (RoarMontage)
+//	{
+//		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+//		{
+//			AnimInstance->Montage_Play(RoarMontage);
+//		}
+//	}
+//}
 void ABossMonster::BeginRisingPhase()
 {
 	CurrentIntroState = EBossIntroState::Rising;
 
+	if (GetMesh())
+	{
+		GrowStartScale = GetMesh()->GetRelativeScale3D();
+		GrowStartLocation = GetActorLocation();
+
+		GrowElapsedTime = 0.0f;
+		bIsGrowing = true;
+	}
+
 	if (RoarMontage)
 	{
-		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		if (UAnimInstance* AnimInstance =
+			GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
 		{
 			AnimInstance->Montage_Play(RoarMontage);
 		}
