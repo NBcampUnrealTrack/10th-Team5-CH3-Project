@@ -5,7 +5,7 @@
 #include "ItemData.h"
 #include "InventoryComponent.generated.h"
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class DREAMPROTECTOR_API UInventoryComponent : public UActorComponent
 {
@@ -34,6 +34,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool HasEnoughItem(FName ItemKey, int32 RequiredCount) const;
 
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnInventoryChanged OnInventoryChanged;
 	// ItemKey에 해당하는 아이템 데이터를 찾는다.
 	const FItemData* FindItemData(FName ItemKey) const;
 
