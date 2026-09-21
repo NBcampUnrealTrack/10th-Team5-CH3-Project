@@ -348,6 +348,8 @@ void AToyPlayerController::Inventory()
 
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
+
+		SetIgnoreMoveInput(false);
 	}
 	else
 	{
@@ -355,13 +357,17 @@ void AToyPlayerController::Inventory()
 
 		bShowMouseCursor = true;
 
-		// 인벤토리가 열려있는 동안 UI만 입력받도록 설정
-		FInputModeUIOnly InputMode;
+		FInputModeGameAndUI InputMode;
 
-		// 키보드 포커스를 인벤토리 위젯에 지정
-		InputMode.SetWidgetToFocus(InventoryWidget->TakeWidget());
+		// 마우스로 UI를 클릭할 수 있으면서
+		// 키보드 입력은 게임 쪽에서도 계속 받을 수 있도록 설정
+		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 
 		SetInputMode(InputMode);
+
+		// UI를 열어도 Tab 입력을 PlayerController가 계속 받을 수 있게
+		SetIgnoreMoveInput(true);
 	}
 }
 
