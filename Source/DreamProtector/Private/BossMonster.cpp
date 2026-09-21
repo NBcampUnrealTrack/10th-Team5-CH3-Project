@@ -196,25 +196,26 @@ void ABossMonster::Tick(float DeltaTime)
 
 	if (CurrentIntroState == EBossIntroState::Lunging)
 	{
-		const FVector NewLoc = FMath::VInterpConstantTo(GetActorLocation(), LungeTargetLocation, DeltaTime, IntroMoveSpeed);
-		SetActorLocation(NewLoc);
+		//const FVector NewLoc = FMath::VInterpConstantTo(GetActorLocation(), LungeTargetLocation, DeltaTime, IntroMoveSpeed);
+		//SetActorLocation(NewLoc);
 
-		if (FVector::Dist(GetActorLocation(), LungeTargetLocation) <= IntroArrivalTolerance)
-		{
-			// 돌진 도착 -> 바로 상승하지 않고 잠깐 대기 (Pausing 상태로 전환)
-			CurrentIntroState = EBossIntroState::Pausing;
-			SetActorLocation(LungeTargetLocation);
+		//if (FVector::Dist(GetActorLocation(), LungeTargetLocation) <= IntroArrivalTolerance)
+		//{
+		//	// 돌진 도착 -> 바로 상승하지 않고 잠깐 대기 (Pausing 상태로 전환)
+		//	CurrentIntroState = EBossIntroState::Pausing;
+		//	SetActorLocation(LungeTargetLocation);
 
-			if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-			{
-				MoveComp->StopMovementImmediately();
-			}
+		//	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		//	{
+		//		MoveComp->StopMovementImmediately();
+		//	}
 
-			GetWorldTimerManager().SetTimer(IntroPauseTimerHandle, this, &ABossMonster::BeginRisingPhase, IntroPauseDuration, false);
-		}
+		//	GetWorldTimerManager().SetTimer(IntroPauseTimerHandle, this, &ABossMonster::BeginRisingPhase, IntroPauseDuration, false);
+		//}
 	}
 
-	else if (CurrentIntroState == EBossIntroState::Pausing)
+	//else if (CurrentIntroState == EBossIntroState::Pausing)
+	if (CurrentIntroState == EBossIntroState::Pausing)
 	{
 		// 대기 중엔 위치 고정 (Flying 무브먼트 잔여 관성으로 밀리는 것 방지)
 		SetActorLocation(LungeTargetLocation);
@@ -255,9 +256,27 @@ void ABossMonster::BeginRisingPhase()
 	}
 }
 
+//void ABossMonster::StartIntroSequence()
+//{
+//	// 이미 시작했거나 끝났으면 중복 실행 방지
+//	if (CurrentIntroState != EBossIntroState::NotStarted)
+//	{
+//		return;
+//	}
+//
+//	CurrentIntroState = EBossIntroState::Lunging;
+//
+//	if (LungeMontage)
+//	{
+//		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+//		{
+//			AnimInstance->Montage_Play(LungeMontage);
+//		}
+//	}
+//}
+
 void ABossMonster::StartIntroSequence()
 {
-	// 이미 시작했거나 끝났으면 중복 실행 방지
 	if (CurrentIntroState != EBossIntroState::NotStarted)
 	{
 		return;
@@ -265,14 +284,63 @@ void ABossMonster::StartIntroSequence()
 
 	CurrentIntroState = EBossIntroState::Lunging;
 
-	if (LungeMontage)
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		MoveComp->StopMovementImmediately();
+	}
+
+	UAnimInstance* AnimInstance =
+		GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+
+	if (AnimInstance && LungeMontage)
+	{
+		if (AnimInstance->Montage_Play(LungeMontage) > 0.0f)
 		{
-			AnimInstance->Montage_Play(LungeMontage);
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(
+				this, &ABossMonster::OnLungeMontageEnded);
+
+			AnimInstance->Montage_SetEndDelegate(
+				EndDelegate, LungeMontage);
+
+			return;
 		}
 	}
+
+	// 애니메이션을 재생할 수 없다면 현재 위치에서 다음 단계로 진행
+	OnLungeMontageEnded(nullptr, false);
 }
 
+void ABossMonster::OnLungeMontageEnded(
+	UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bIsDead ||
+		CurrentIntroState != EBossIntroState::Lunging ||
+		bInterrupted)
+	{
+		return;
+	}
 
+	// 애니메이션으로 실제 도착한 위치를 대기 위치로 사용
+	LungeTargetLocation = GetActorLocation();
+	CurrentIntroState = EBossIntroState::Pausing;
 
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+	}
+
+	if (IntroPauseDuration <= 0.0f)
+	{
+		BeginRisingPhase();
+	}
+	else
+	{
+		GetWorldTimerManager().SetTimer(
+			IntroPauseTimerHandle,
+			this,
+			&ABossMonster::BeginRisingPhase,
+			IntroPauseDuration,
+			false);
+	}
+}
