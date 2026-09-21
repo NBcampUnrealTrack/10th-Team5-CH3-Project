@@ -357,7 +357,21 @@ void AToyPlayerController::UseSlot1()
 	APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn());
 
-	if (PlayerCharacter)
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	// 현재 실행 중인 맵 이름 가져오기
+	const FString LevelName = GetWorld()->GetMapName();
+
+	// Stage2에서는 1번 슬롯 = 하트 태엽
+	if (LevelName.Contains(TEXT("Stage2")))
+	{
+		PlayerCharacter->UseItem(TEXT("HeartGear"));
+	}
+	// 그 외(Stage1)에서는 기존 태엽 폭탄
+	else
 	{
 		PlayerCharacter->UseItem(TEXT("WindupBomb"));
 	}
