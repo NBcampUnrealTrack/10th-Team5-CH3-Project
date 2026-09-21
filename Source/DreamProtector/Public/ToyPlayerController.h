@@ -57,6 +57,14 @@ public:
 	UPROPERTY()
 	UUserWidget* HUDWidget;
 
+	// 에디터에서 사용할 튜토리얼 WBP를 지정하는 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> TutorialWidgetClass;
+
+	// 실제로 생성한 튜토리얼 위젯을 보관하는 변수
+	UPROPERTY()
+	UUserWidget* TutorialWidget = nullptr;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
