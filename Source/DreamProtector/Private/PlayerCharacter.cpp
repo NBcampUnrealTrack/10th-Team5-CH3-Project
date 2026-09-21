@@ -11,6 +11,12 @@
 #include "Components/ChildActorComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "InventoryComponent.h"
+#include "ItemData.h"
+#include "WindupBomb.h"
+#include "Barricade.h"
+#include "Bed.h"
+
 #include "GameFrameWork/SpringArmComponent.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -694,4 +700,144 @@ void APlayerCharacter::OnAttackMontageEnded(
 		TEXT("Attack Montage Ended / Interrupted: %d"),
 		bInterrupted
 	);
+}
+
+bool APlayerCharacter::UseItem(FName ItemKey)
+{
+	// 인벤토리 컴포넌트 찾기
+	UInventoryComponent* Inventory =
+		FindComponentByClass<UInventoryComponent>();
+
+	if (!Inventory)
+	{
+		return false;
+	}
+
+	// 해당 아이템을 실제로 가지고 있는지 확인
+	if (!Inventory->HasEnoughItem(ItemKey, 1))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("UseItem Failed - Item Not Found: %s"),
+			*ItemKey.ToString()
+		);
+
+		return false;
+	}
+
+	// DT_ItemData에서 아이템 정보 찾기
+	const FItemData* ItemData = Inventory->FindItemData(ItemKey);
+
+	if (!ItemData)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("UseItem Failed - ItemData Not Found: %s"),
+			*ItemKey.ToString()
+		);
+
+		return false;
+	}
+
+	// 아이템 사용 타입에 따라 효과 실행
+	switch (ItemData->UseType)
+	{
+	case EItemUseType::WindupBomb:
+	{
+		if (!WindupBombClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WindupBombClass is not set"));
+			return false;
+		}
+
+		// 플레이어 앞쪽 설치 위치
+		const FVector SpawnLocation =
+			GetActorLocation()
+			+ GetActorForwardVector() * ItemSpawnDistance;
+
+		const FRotator SpawnRotation = GetActorRotation();
+
+		AWindupBomb* Bomb =
+			GetWorld()->SpawnActor<AWindupBomb>(
+				WindupBombClass,
+				SpawnLocation,
+				SpawnRotation
+			);
+
+		if (!Bomb)
+		{
+			return false;
+		}
+
+		// Spawn 성공 후에만 아이템 1개 소비
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("WindupBomb Used"));
+
+		return true;
+	}
+
+	case EItemUseType::Barricade:
+	{
+		if (!BarricadeClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BarricadeClass is not set"));
+			return false;
+		}
+
+		// 플레이어 앞쪽에 설치
+		const FVector SpawnLocation =
+			GetActorLocation()
+			+ GetActorForwardVector() * ItemSpawnDistance;
+
+		const FRotator SpawnRotation = GetActorRotation();
+
+		ABarricade* Barricade =
+			GetWorld()->SpawnActor<ABarricade>(
+				BarricadeClass,
+				SpawnLocation,
+				SpawnRotation
+			);
+
+		// 생성 실패하면 아이템을 소비하지 않음
+		if (!Barricade)
+		{
+			return false;
+		}
+
+		// 설치 성공 후에만 인벤토리에서 1개 제거
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("Barricade Used"));
+
+		return true;
+	}
+
+	case EItemUseType::SleepLamp:
+	{
+		ABed* Bed = Cast<ABed>(
+			UGameplayStatics::GetActorOfClass(GetWorld(), ABed::StaticClass())
+		);
+
+		if (!Bed)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SleepLamp Failed: Bed Not Found"));
+			return false;
+		}
+
+		// 침대 스트레스 30 감소
+		Bed->DecreaseStress(30);
+
+		// 성공했을 때만 수면등 소비
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("SleepLamp Used"));
+
+		return true;
+	}
+	default:
+		return false;
+	}
 }
