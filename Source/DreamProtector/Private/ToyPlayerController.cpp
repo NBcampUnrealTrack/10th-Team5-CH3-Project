@@ -179,6 +179,37 @@ void AToyPlayerController::SetupInputComponent()
 				&AToyPlayerController::Inventory
 			);
 		}
+
+		if (UseSlot1Action)
+		{
+			EnhancedInputComponent->BindAction(
+				UseSlot1Action,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::UseSlot1
+			);
+		}
+
+		if (UseSlot2Action)
+		{
+			EnhancedInputComponent->BindAction(
+				UseSlot2Action,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::UseSlot2
+			);
+		}
+
+		if (UseSlot3Action)
+		{
+			EnhancedInputComponent->BindAction(
+				UseSlot3Action,
+				ETriggerEvent::Started,
+				this,
+				&AToyPlayerController::UseSlot3
+			);
+		}
+
 	}
 }
 
@@ -298,5 +329,40 @@ void AToyPlayerController::Inventory()
 		FInputModeGameAndUI InputMode;
 		InputMode.SetHideCursorDuringCapture(false);
 		SetInputMode(InputMode);
+	}
+}
+
+void AToyPlayerController::UseSlot1()
+{
+	APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn());
+
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->UseItem(TEXT("WindupBomb"));
+	}
+}
+
+void AToyPlayerController::UseSlot2()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Slot2 Pressed"));
+
+	APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn());
+
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->UseItem(TEXT("Barricade"));
+	}
+}
+
+void AToyPlayerController::UseSlot3()
+{
+	APlayerCharacter* PlayerCharacter =
+		Cast<APlayerCharacter>(GetPawn());
+
+	if (PlayerCharacter)
+	{
+		PlayerCharacter->UseItem(TEXT("SleepLamp"));
 	}
 }
