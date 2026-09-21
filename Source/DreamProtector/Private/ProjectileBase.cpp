@@ -1,4 +1,5 @@
 #include "ProjectileBase.h"
+#include "PlayerCharacter.h"
 #include "BaseMonster.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
@@ -10,7 +11,7 @@ AProjectileBase::AProjectileBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// ¹ß»çÃ¼ Ãæµ¹ °¨Áö Collision »ı¼º
+	// ë°œì‚¬ì²´ ì¶©ëŒ ê°ì§€ Collision ìƒì„±
 	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
 	SetRootComponent(SphereCollision);
 
@@ -24,16 +25,16 @@ AProjectileBase::AProjectileBase()
 
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	//Ã³À½ ¹ß»ç ¼Óµµ
+	//ì²˜ìŒ ë°œì‚¬ ì†ë„
 	ProjectileMovement->InitialSpeed = 5000.0f;
-	//ÃÖ´ë ¼Óµµ
+	//ìµœëŒ€ ì†ë„
 	ProjectileMovement->MaxSpeed = 5000.0f;
-	//³¯¾Æ°¡´Â ¹æÇâÀ» ¹Ù¶óº¸°Ô ÇÒ°Å³Ä true/false
+	//ë‚ ì•„ê°€ëŠ” ë°©í–¥ì„ ë°”ë¼ë³´ê²Œ í• ê±°ëƒ true/false
 	ProjectileMovement->bRotationFollowsVelocity = true;
-	//Áß·Â ¿µÇâ (ÇöÀç´Â 0 == Á÷¼±)
+	//ì¤‘ë ¥ ì˜í–¥ (í˜„ì¬ëŠ” 0 == ì§ì„ )
 	ProjectileMovement->ProjectileGravityScale = 0.1f;
 
-	//SphereCollision¿¡¼­ OverlapÀÌ ½ÃÀÛ µÉ¶§ ÇöÀç °´Ã¼¿¡¼­ OnOverlap ÇÔ¼ö ½ÇÇà
+	//SphereCollisionì—ì„œ Overlapì´ ì‹œì‘ ë ë•Œ í˜„ì¬ ê°ì²´ì—ì„œ OnOverlap í•¨ìˆ˜ ì‹¤í–‰
 	SphereCollision->OnComponentBeginOverlap.AddDynamic(
 		this,
 		&AProjectileBase::OnOverlapBegin
@@ -48,21 +49,35 @@ void AProjectileBase::OnOverlapBegin(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	//Ãæµ¹ÇÑ Actor°¡ À¯È¿ÇÏÁö ¾Ê°Å³ª ³ª ÀÚ½ÅÀÌ¶ó¸é ¹«½Ã
+	//ì¶©ëŒí•œ Actorê°€ ìœ íš¨í•˜ì§€ ì•Šê±°ë‚˜ ë‚˜ ìì‹ ì´ë¼ë©´ ë¬´ì‹œ
 	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
 	{
 		return;
 	}
 
-	//Ãæµ¹ÇÑ Actor°¡ Monster¶ó¸é µ¥¹ÌÁö Ã³¸®
+	//ì¶©ëŒí•œ Actorê°€ Monsterë¼ë©´ ë°ë¯¸ì§€ ì²˜ë¦¬
 	if (ABaseMonster* Monster = Cast<ABaseMonster>(OtherActor))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
 
-		//¸ó½ºÅÍ¿¡°Ô µ¥¹ÌÁö Àü´Ş
-		Monster->TakeDamage(Damage);
+		float FinalDamage = Damage;
+
+		// ì´ íˆ¬ì‚¬ì²´ë¥¼ ë°œì‚¬í•œ í”Œë ˆì´ì–´ ì°¾ê¸°
+		if (APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner()))
+		{
+			FinalDamage *= Player->GetAttackDamageMultiplier();
+		}
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Projectile Damage: %.1f"),
+			FinalDamage
+		);
+
+		Monster->TakeDamage(FinalDamage);
 		
-		//ÇÇ°İ ÈÄ ¹ß»çÃ¼¸¦ ¿ÀºêÁ§Æ® Ç®·Î ¹İÈ¯
+		//í”¼ê²© í›„ ë°œì‚¬ì²´ë¥¼ ì˜¤ë¸Œì íŠ¸ í’€ë¡œ ë°˜í™˜
 		DeactivateProjectile();
 
 		return;
@@ -73,10 +88,10 @@ void AProjectileBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//ºñÈ°¼ºÈ­ “T»çÃ¼´Â È¸Àü ¾ÈÇÔ
+	//ë¹„í™œì„±í™” Â“Tì‚¬ì²´ëŠ” íšŒì „ ì•ˆí•¨
 	if (!IsHidden())
 	{
-		//ºñÇàÁß ¹ß»çÃ¼ È¸Àü Àû¿ë
+		//ë¹„í–‰ì¤‘ ë°œì‚¬ì²´ íšŒì „ ì ìš©
 		StaticMeshComp->AddLocalRotation(
 			FRotator(350.0f, 150.0f, 90.0f) * DeltaTime
 		);
@@ -88,17 +103,17 @@ void AProjectileBase::ActivateProjectile(
 	const FRotator& SpawnRotation
 )
 {
-	//¹ß»çÃ¼¸¦ ¹ß»ç À§Ä¡·Î ÀÌµ¿
+	//ë°œì‚¬ì²´ë¥¼ ë°œì‚¬ ìœ„ì¹˜ë¡œ ì´ë™
 	SetActorLocationAndRotation(
 		SpawnLocation,
 		SpawnRotation
 	);
 
-	//Ç®¿¡ ºñÈ°¼ºÈ­µÇ¾îÀÖ´ø ¹ß»çÃ¼¸¦ ´Ù½Ã º¸ÀÌ°Ô ÇÏ°í Ãæµ¹ È°¼ºÈ­
+	//í’€ì— ë¹„í™œì„±í™”ë˜ì–´ìˆë˜ ë°œì‚¬ì²´ë¥¼ ë‹¤ì‹œ ë³´ì´ê²Œ í•˜ê³  ì¶©ëŒ í™œì„±í™”
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
 
-	//Projectile Movement È°¼ºÈ­ ¹× ¹ß»ç ¼Óµµ Àû¿ë
+	//Projectile Movement í™œì„±í™” ë° ë°œì‚¬ ì†ë„ ì ìš©
 	if (ProjectileMovement)
 	{
 		ProjectileMovement->Activate(true);
@@ -108,8 +123,8 @@ void AProjectileBase::ActivateProjectile(
 			ProjectileMovement->InitialSpeed;
 	}
 
-	// ¾Æ¹«°Íµµ ¸ÂÁö ¾ÊÀº ¹ß»çÃ¼µµ
-	// 3ÃÊ ÈÄ ÀÚµ¿À¸·Î ¿ÀºêÁ§Æ® Ç®¿¡ ¹İÈ¯
+	// ì•„ë¬´ê²ƒë„ ë§ì§€ ì•Šì€ ë°œì‚¬ì²´ë„
+	// 3ì´ˆ í›„ ìë™ìœ¼ë¡œ ì˜¤ë¸Œì íŠ¸ í’€ì— ë°˜í™˜
 	GetWorldTimerManager().SetTimer(
 		DeactivateTimerHandle,
 		this,
@@ -121,14 +136,14 @@ void AProjectileBase::ActivateProjectile(
 
 void AProjectileBase::DeactivateProjectile()
 {
-	// ÀÚµ¿ ¹İÈ¯ Å¸ÀÌ¸Ó Á¦°Å
+	// ìë™ ë°˜í™˜ íƒ€ì´ë¨¸ ì œê±°
 	GetWorldTimerManager().ClearTimer(DeactivateTimerHandle);
 
-	// ¹ß»çÃ¼ ¼û±â±â ¹× Ãæµ¹ ºñÈ°¼ºÈ­
+	// ë°œì‚¬ì²´ ìˆ¨ê¸°ê¸° ë° ì¶©ëŒ ë¹„í™œì„±í™”
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 
-	// ÀÌµ¿ ÁßÁö ÈÄ Projectile Movement ºñÈ°¼ºÈ­
+	// ì´ë™ ì¤‘ì§€ í›„ Projectile Movement ë¹„í™œì„±í™”
 	if (ProjectileMovement)
 	{
 		ProjectileMovement->StopMovementImmediately();
@@ -150,7 +165,7 @@ void AProjectileBase::OnHit(
 	}
 
 
-	// Ãæµ¹ À§Ä¡¿¡ Niagara VFX »ı¼º
+	// ì¶©ëŒ ìœ„ì¹˜ì— Niagara VFX ìƒì„±
 	if (ImpactVFX)
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
@@ -160,8 +175,8 @@ void AProjectileBase::OnHit(
 			Hit.ImpactNormal.Rotation()
 		);
 	}
-	// ½ÇÁ¦ Ãæµ¹ ÁöÁ¡¿¡¼­ Impact Sound Àç»ı
-	// ImpactAttenuationÀ» ÅëÇØ °Å¸®¿¡ µû¶ó ¼Ò¸® Å©±â°¡ °¨¼Ò
+	// ì‹¤ì œ ì¶©ëŒ ì§€ì ì—ì„œ Impact Sound ì¬ìƒ
+	// ImpactAttenuationì„ í†µí•´ ê±°ë¦¬ì— ë”°ë¼ ì†Œë¦¬ í¬ê¸°ê°€ ê°ì†Œ
 	if (ImpactSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(
@@ -175,7 +190,7 @@ void AProjectileBase::OnHit(
 		);
 	}
 
-	// Ãæµ¹ Ã³¸® ÈÄ ¹ß»çÃ¼¸¦ ¿ÀºêÁ§Æ® Ç®·Î ¹İÈ¯
+	// ì¶©ëŒ ì²˜ë¦¬ í›„ ë°œì‚¬ì²´ë¥¼ ì˜¤ë¸Œì íŠ¸ í’€ë¡œ ë°˜í™˜
 	DeactivateProjectile();
 }
 

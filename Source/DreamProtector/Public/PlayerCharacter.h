@@ -83,6 +83,16 @@ protected:
 	bool bIsAutoFiring = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
 	float SingleFireCooldown = 0.3f;
+	// 별사탕 공격력 버프 배율
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Buff")
+	float AttackDamageMultiplier = 1.0f;
+	// 별사탕 버프 종료 타이머
+	FTimerHandle StarCandyTimerHandle;
+	// 태엽 신발 사용 전 이동속도를 저장
+	float OriginalWalkSpeed = 0.0f;
+
+	// 태엽 신발 버프 종료용 타이머
+	FTimerHandle GearShoesTimerHandle;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attack")
 	bool bIsAttacking = false;
@@ -179,4 +189,5 @@ public:
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	bool UseItem(FName ItemKey);
+	float GetAttackDamageMultiplier() const;
 };
