@@ -75,6 +75,26 @@ void AToyPlayerController::BeginPlay()
 			HUDWidget->AddToViewport();
 		}
 	}
+
+	if (TutorialWidgetClass)
+	{
+		TutorialWidget = CreateWidget<UUserWidget>(
+			this,
+			TutorialWidgetClass
+		);
+
+		if (TutorialWidget)
+		{
+			// MainHUD보다 앞에 표시
+			TutorialWidget->AddToViewport(10);
+
+			// 게임 입력과 UI 입력을 함께 사용
+			UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(this);
+
+			// Next 버튼을 클릭할 수 있도록 커서 표시
+			bShowMouseCursor = true;
+		}
+	}
 }
 
 //PlayerController의 입력 설정을 초기화 할때 호출되는 함수(바인딩함수)
