@@ -11,7 +11,9 @@ enum class EItemUseType : uint8
     None        UMETA(DisplayName = "사용 불가"),
     WindupBomb  UMETA(DisplayName = "태엽 폭탄"),
     Barricade   UMETA(DisplayName = "바리케이드"),
-    SleepLamp   UMETA(DisplayName = "수면등")
+    SleepLamp   UMETA(DisplayName = "수면등"),
+
+    HeartGear   UMETA(DisplayName = "하트 태엽")
 };
 
 UENUM(BlueprintType)
