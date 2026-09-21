@@ -20,7 +20,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	int32, CurrentMana,
 	int32, MaxMana
 );
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnHealthChanged,
+	float, CurrentHealth,
+	float, MaxHealth
+);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDied);
 UENUM(BlueprintType)
 enum class EPlayControlMode : uint8
 {
@@ -40,11 +45,18 @@ public:
 	//위 매크로에서 만든 딜리게이트타입의 변수
 	UPROPERTY(BlueprintAssignable, Category = "Mana")
 	FonManaChanged OnManaChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Health")
+	FOnHealthChanged OnHealthChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Health")
+	FOnPlayerDied OnPlayerDied;
 
 
 protected:
 	
 	virtual void BeginPlay() override;
+	void Die();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+	bool bIsDead = false;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	USpringArmComponent* SpringArm;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")

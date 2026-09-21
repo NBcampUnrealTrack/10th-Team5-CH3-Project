@@ -867,7 +867,7 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 			0.0f,
 			MaxHP
 		);
-
+		OnHealthChanged.Broadcast(CurrentHP, MaxHP);
 		// 사용에 성공했으므로 인벤토리에서 하트 태엽 1개 제거
 		Inventory->RemoveItems(ItemKey, 1);
 
@@ -967,6 +967,33 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 	}
 }
 
+void APlayerCharacter::Die()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	bIsDead = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("Player Dead"));
+
+	// 플레이어 이동 정지
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	// 플레이어 입력 비활성화
+	if (APlayerController* PlayerController =
+		Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PlayerController);
+	}
+	OnPlayerDied.Broadcast();
+}
+
 float APlayerCharacter::GetAttackDamageMultiplier() const
 {
 	return AttackDamageMultiplier;
@@ -976,7 +1003,7 @@ float APlayerCharacter::GetAttackDamageMultiplier() const
 void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
 {
 	// 이미 죽은 상태면 추가 데미지 무시
-	if (CurrentHP <= 0.0f)
+	if (bIsDead)
 	{
 		return;
 	}
@@ -987,7 +1014,8 @@ void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
 		0.0f,
 		MaxHP
 	);
-
+	// UI에게 HP가 변경됐다고 알림
+	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
 	UE_LOG(
 		LogTemp,
 		Warning,
@@ -1000,6 +1028,6 @@ void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
 	// 사망 체크
 	if (CurrentHP <= 0.0f)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Player Dead"));
+		Die();
 	}
 }

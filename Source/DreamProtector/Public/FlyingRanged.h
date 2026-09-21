@@ -44,6 +44,8 @@ protected:
 	// 진행 방향에 장애물 있는지 라이트레이스로 확인
 	bool CheckObstacleAhead();
 
+	void FaceTarget(float DeltaTime);
+
 	float BaseGroundZ = 0.0f;
 
 
@@ -84,4 +86,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Sound")
 	// 공격 시 재생하는 사운드
 	TObjectPtr<USoundBase> AttackSound;
+
+
 };

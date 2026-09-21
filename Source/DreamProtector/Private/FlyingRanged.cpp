@@ -35,23 +35,27 @@ void AFlyingRanged::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 타겟(플레이어)가 없거나 죽으면 아무것도 하기 싫어요~
-	if (CurrentHealth <= 0.0f) return;
+	if (CurrentHealth <= 0.0f)
+	{
+		return;
+	}
 
-	// 추적 / 공격은 BT 담당이라 비행 관련 물리만 처리
 	if (CheckObstacleAhead())
 	{
-		// 장애물 회피 우선
 		AvoidObstacle(DeltaTime);
 	}
-	// 프레임마다 높이 조정
-	MaintainFlightHeight(DeltaTime);
 
-	if (Target && IsTargetInAttackRange())
+	if (Target)
 	{
-		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		// 이동 중이든 공격 중이든 계속 플레이어를 바라봄
+		FaceTarget(DeltaTime);
+
+		if (IsTargetInAttackRange())
 		{
-			Movement->StopMovementImmediately();
+			if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+			{
+				Movement->StopMovementImmediately();
+			}
 		}
 	}
 }
@@ -59,19 +63,19 @@ void AFlyingRanged::Tick(float DeltaTime)
 void AFlyingRanged::MoveTowardsTarget()
 {
 	if (!Target) return;
-
 	if (IsTargetInAttackRange()) return;
 
-	FVector Direction = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-	// CharacterMovementComponent 로 이동 입력 적용
+	FVector TargetLocation = Target->GetActorLocation();
+
+	// 플레이어보다 일정 높이 위를 목표로 함
+	TargetLocation.Z += FlyHeight;
+
+	FVector Direction =
+		(TargetLocation - GetActorLocation()).GetSafeNormal();
+
 	AddMovementInput(Direction, 1.0f);
 
-	// 몸은 항상 타겟을 바라보게 회전
-	FVector LookDirection = (Target->GetActorLocation() - GetActorLocation());
-	// 수평 회전
-	LookDirection.Z = 0.0f;
-	FRotator NewRotation = LookDirection.Rotation();
-	SetActorRotation(FMath::RInterpTo(GetActorRotation(), NewRotation, GetWorld()->GetDeltaSeconds(), 5.0f));
+	
 }
 
 void AFlyingRanged::MaintainFlightHeight(float DeltaTime)
@@ -200,4 +204,34 @@ void AFlyingRanged::Attack_Implementation()
 			TEXT("FlyingRanged Projectile Fired")
 		);
 	}
+}
+
+void AFlyingRanged::FaceTarget(float DeltaTime)
+{
+	if (!Target)
+	{
+		return;
+	}
+
+	FVector LookDirection =
+		Target->GetActorLocation() - GetActorLocation();
+
+	// 위아래로 기울지 않고 좌우로만 회전
+	LookDirection.Z = 0.0f;
+
+	if (LookDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	FRotator TargetRotation = LookDirection.Rotation();
+
+	FRotator NewRotation = FMath::RInterpTo(
+		GetActorRotation(),
+		TargetRotation,
+		DeltaTime,
+		5.0f
+	);
+
+	SetActorRotation(NewRotation);
 }
