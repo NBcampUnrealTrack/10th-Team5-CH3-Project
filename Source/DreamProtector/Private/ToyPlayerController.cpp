@@ -5,6 +5,8 @@
 //UEhancedInputComponent를 사용하기 위에 필요함.
 //Input Action과 C++ 함수를 BindAction()으로 연결할떄 사용함.
 #include "EnhancedInputComponent.h"
+//카메라 시점 제한에 사용
+#include "Camera/PlayerCameraManager.h"
 //FInputActionValue를 사용하기 위해 필요함.
 //Move 입력의 Axis2D 값을 받아올 때 사용함.
 #include "InputActionValue.h"
@@ -44,6 +46,13 @@ void AToyPlayerController::BeginPlay()
 	UWidgetBlueprintLibrary::SetInputMode_GameOnly(this);
 	//마우스커서 안보이게하기
 	bShowMouseCursor = false;
+
+	//카메라 시점 제한
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->ViewPitchMin = MinCameraPitch;
+		PlayerCameraManager->ViewPitchMax = MaxCameraPitch;
+	}
 
 	//이 Controller와 연결된 로컬 플레이어를 가져온다. (로컬플레이어 = 게임을 직접 하는 사용자)
 	//Enhanced Input의 Input MappingContext를 관리하는 Subsystem이 LocalPlay에 있음.
