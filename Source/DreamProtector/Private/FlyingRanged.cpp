@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimMontage.h"
 #include "Particles/ParticleSystem.h"
+#include "EnemyProjectile.h"
 #include "Sound/SoundBase.h"
 
 AFlyingRanged::AFlyingRanged()
@@ -117,8 +118,13 @@ bool AFlyingRanged::CanAttack() const
 
 void AFlyingRanged::Attack_Implementation()
 {
+	
 	// 공격 애니메이션
-	if (!Target) return;
+	if (!Target)
+	{
+		
+		return;
+	}
 	// 쿨타임 갱신
 	LastAttackTime = GetWorld()->GetTimeSeconds();
 
@@ -149,5 +155,49 @@ void AFlyingRanged::Attack_Implementation()
 		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
 	}
 
-	// 투사체(AEnemyProjectile) 스폰 방식으로 갈지, 즉시 데미지 적용할지 결정 필요
+	// 발사할 투사체 클래스가 설정되지 않았다면 발사하지 않음
+	if (!EnemyProjectileClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemyProjectileClass is not set"));
+		return;
+	}
+
+	// 총알이 생성될 위치
+	FVector SpawnLocation =
+		GetMesh()->GetSocketLocation(AttackEffectSocketName);
+
+	// 플레이어 위치
+	FVector TargetLocation =
+		Target->GetActorLocation();
+
+	// 플레이어 몸 중심 정도를 조준하도록 높이를 조금 올림
+	TargetLocation.Z += 50.0f;
+
+	// 발사 위치에서 플레이어를 향하는 방향 계산
+	FVector FireDirection =
+		(TargetLocation - SpawnLocation).GetSafeNormal();
+
+	// 방향 벡터를 회전값으로 변환
+	FRotator SpawnRotation =
+		FireDirection.Rotation();
+
+	// EnemyProjectile 생성
+	AEnemyProjectile* Projectile =
+		GetWorld()->SpawnActor<AEnemyProjectile>(
+			EnemyProjectileClass,
+			SpawnLocation,
+			SpawnRotation
+		);
+
+	if (Projectile)
+	{
+		// 자기 자신과 투사체가 충돌하지 않도록
+		Projectile->SetOwner(this);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("FlyingRanged Projectile Fired")
+		);
+	}
 }

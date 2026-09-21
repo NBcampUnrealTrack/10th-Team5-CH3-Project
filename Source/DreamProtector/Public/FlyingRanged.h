@@ -4,7 +4,7 @@
 #include "BaseMonster.h"
 #include "FlyingRanged.generated.h"
 
-
+class AEnemyProjectile;
 UCLASS()
 class DREAMPROTECTOR_API AFlyingRanged : public ABaseMonster
 {
@@ -56,6 +56,9 @@ protected:
 	float AttackCooldown = 2.0f;
 	// 마지막 공격 (쿨타임 확인을 위함)
 	float LastAttackTime = -999.9f;
+	// 이 몬스터가 발사할 투사체 클래스
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	TSubclassOf<AEnemyProjectile> EnemyProjectileClass;
 
 	// 비행 유지 높이
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Flight")

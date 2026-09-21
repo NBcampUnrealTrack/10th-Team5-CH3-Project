@@ -971,3 +971,35 @@ float APlayerCharacter::GetAttackDamageMultiplier() const
 {
 	return AttackDamageMultiplier;
 }
+
+
+void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
+{
+	// 이미 죽은 상태면 추가 데미지 무시
+	if (CurrentHP <= 0.0f)
+	{
+		return;
+	}
+
+	// 체력 감소
+	CurrentHP = FMath::Clamp(
+		CurrentHP - DamageAmount,
+		0.0f,
+		MaxHP
+	);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Player Hit! Damage: %.1f / HP: %.1f / %.1f"),
+		DamageAmount,
+		CurrentHP,
+		MaxHP
+	);
+
+	// 사망 체크
+	if (CurrentHP <= 0.0f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player Dead"));
+	}
+}

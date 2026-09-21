@@ -41,6 +41,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Mana")
 	FonManaChanged OnManaChanged;
 
+
 protected:
 	
 	virtual void BeginPlay() override;
@@ -190,4 +191,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	bool UseItem(FName ItemKey);
 	float GetAttackDamageMultiplier() const;
+	// 몬스터 공격 등으로 플레이어가 데미지를 받을 때 호출
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void TakeDamageFromEnemy(float DamageAmount);
+
 };
