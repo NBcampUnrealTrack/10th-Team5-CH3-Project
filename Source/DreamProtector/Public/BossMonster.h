@@ -127,6 +127,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Boss|Intro")
 	void StartIntroSequence();
 
+	void OnLungeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 	// 돌진 시 재생 (의자에서 앞으로 살짝 튀어나가는 모션)
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Anim")
 	UAnimMontage* LungeMontage;
