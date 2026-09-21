@@ -117,6 +117,28 @@ public:
 	// 대기 끝나고 상승 단계 시작 (타이머 콜백용)
 	void BeginRisingPhase();
 
+	// 보스가 커지는 데 걸리는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Intro")
+	float GrowDuration = 2.0f;
+
+	// Roar와 상승이 시작된 후, 커지기까지 기다릴 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Intro")
+	float GrowDelay = 0.6f;
+
+	// 최종 Mesh 크기
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Intro")
+	float TargetMeshScale = 8.0f;
+
+	// 성장 진행 상태
+	bool bIsGrowing = false;
+	float GrowElapsedTime = 0.0f;
+
+	// 성장 시작 당시의 크기
+	FVector GrowStartScale = FVector::OneVector;
+
+	// 성장과 상승을 시작하는 위치
+	FVector GrowStartLocation = FVector::ZeroVector;
+
 	FTimerHandle IntroPauseTimerHandle;
 
 	//FVector IntroMoveStartLocation;
