@@ -191,7 +191,7 @@ void APlayerCharacter::FireCurrentWeapon()
 //ABP
 void APlayerCharacter::EndAttackAnimation()
 {
-	bIsAttacking = false;
+	//bIsAttacking = false;
 
 	// 현재 카메라 모드의 회전 설정으로 복귀
 	ApplyControlMode(CurrentControlMode);
@@ -209,13 +209,13 @@ void APlayerCharacter::StartAttack()
 	);
 
 
-	// 쿨타임 중이면 공격 불가
+	// 단발 쿨타임 중이면 공격 불가
 	if (!bCanAttack)
 	{
 		return;
 	}
 
-	// 이전 공격 모션이 아직 끝나지 않았다면 공격 불가
+	// 이미 공격 중이거나 연사중이면 공격 불가
 	if (bIsAttacking || bIsAutoFiring)
 	{
 		return;
@@ -227,8 +227,22 @@ void APlayerCharacter::StartAttack()
 		return;
 	}
 
-	// 무기가 없다면 공격 불가
-	if (!CurrentWeapon)
+	// 무기또는 공격 몽타주 없다면 공격 불가
+	if (!CurrentWeapon || !AttackMontage)
+	{
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance 가져오기
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	// 단발 몽타주 재생중이면 재시작 금지
+	if (AnimInstance->Montage_IsPlaying(AttackMontage))
 	{
 		return;
 	}
@@ -239,9 +253,31 @@ void APlayerCharacter::StartAttack()
 		return;
 	}
 
-	// 공격 상태 시작
+	// 단발 공격 몽타주 재생
+	const float MontageDuration = PlayAnimMontage(AttackMontage);
+
+	// 실패시 공격하지 않음
+	if (MontageDuration <= 0.0f)
+	{
+		return;
+	}
+
+	// 단발 공격 상태 시작
 	bIsAttacking = true;
 	bIsAutoFiring = false;
+
+	// 몽타주가 정상종료될때 호출 함수
+	FOnMontageEnded EndDelegate;
+
+	EndDelegate.BindUObject(
+		this,
+		&APlayerCharacter::OnAttackMontageEnded
+	);
+
+	AnimInstance->Montage_SetEndDelegate(
+		EndDelegate,
+		AttackMontage
+	);
 
 	// 공격 중에는 카메라가 보는 방향으로 캐릭터 고정
 	bUseControllerRotationYaw = true;
@@ -250,30 +286,6 @@ void APlayerCharacter::StartAttack()
 	{
 		MovementComponent->bOrientRotationToMovement = false;
 		MovementComponent->bUseControllerDesiredRotation = false;
-	}
-
-	// 공격 몽타주 재생
-	if (AttackMontage)
-	{
-		float MontageDuration = PlayAnimMontage(AttackMontage);
-		
-		if (MontageDuration > 0.0f)
-		{
-			if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-			{
-				FOnMontageEnded EndDelegate;
-
-				EndDelegate.BindUObject(
-					this,
-					&APlayerCharacter::OnAttackMontageEnded
-				);
-
-				AnimInstance->Montage_SetEndDelegate(
-					EndDelegate,
-					AttackMontage
-				);
-			}
-		}
 	}
 
 	// 단발 쿨타임
