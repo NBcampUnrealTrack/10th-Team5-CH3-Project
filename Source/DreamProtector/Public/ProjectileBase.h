@@ -6,6 +6,10 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "ProjectileBase.generated.h"
 
+class UNiagaraSystem;
+class USoundBase;
+class USoundAttenuation;
+
 UCLASS()
 class DREAMPROTECTOR_API AProjectileBase : public AActor
 {
@@ -45,6 +49,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 	float Damage = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Impact")
+	UNiagaraSystem* ImpactVFX;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Impact")
+	USoundBase* ImpactSound;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Impact")
+	USoundAttenuation* ImpactAttenuation;
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void ActivateProjectile(
@@ -53,6 +63,20 @@ public:
 	);
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void DeactivateProjectile();
+	UFUNCTION()
+	void OnHit(
+		UPrimitiveComponent* HitComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse,
+		const FHitResult& Hit
+	);
+
+	//효과 재생용 함수
+	void PlayImpactEffect(
+		const FVector& Location,
+		const FVector& Normal
+	);
 	
 
 };
