@@ -137,6 +137,9 @@ void APlayerCharacter::Move(const FVector2D& MovementVector)
 		return;
 	}
 
+	// 대각선 입력 시 속도가 더 빨라지지 않도록 정규화
+	FVector2D NormalizedInput = MovementVector;
+
 	//카메라가 바라보는 방향
 	FRotator ControlRotation = Controller->GetControlRotation();
 
@@ -147,22 +150,22 @@ void APlayerCharacter::Move(const FVector2D& MovementVector)
 		0.0f
 	);
 
-	//카메라 기준 전방 / 우측 방향
-	FVector ForwardDirection =
+	// 카메라 기준 전방 / 우측 방향
+	const FVector ForwardDirection =
 		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-	FVector RightDirection =
+	const FVector RightDirection =
 		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	//입력 기준
+	// 정규화된 입력값 적용
 	AddMovementInput(
 		ForwardDirection,
-		MovementVector.X
+		NormalizedInput.X
 	);
 
 	AddMovementInput(
 		RightDirection,
-		MovementVector.Y
+		NormalizedInput.Y
 	);
 }
 
@@ -595,11 +598,14 @@ void APlayerCharacter::ApplyControlMode(EPlayControlMode NewControlMode)
 
 		Camera->SetFieldOfView(90.0f);
 
-		// 카메라를 돌려도 캐릭터가 바로 따라 돌지 않음
-		bUseControllerRotationYaw = false;
+		// 카메라를 돌려도 캐릭터가 바로 따라 돌지 않음 // 카메라가 보는 좌우 방향으로 캐릭터 몸도 회전
+		bUseControllerRotationYaw = true; //false
 
 		// 이동 방향으로 몸 회전
-		MovementComponent->bOrientRotationToMovement = true;
+		// A / D 입력 시 캐릭터가 옆걸음하게 됨
+		MovementComponent->bOrientRotationToMovement = false; //true
+
+		// Controller Desired Rotation은 사용하지 않음
 		MovementComponent->bUseControllerDesiredRotation = false;
 
 		// 1인칭에서 숨겼던 Mesh 다시 표시
