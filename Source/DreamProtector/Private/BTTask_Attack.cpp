@@ -11,6 +11,7 @@ UBTTask_Attack::UBTTask_Attack()
 
 EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	
 	// 해당 BT를 돌리는 AIController 가져오기
 	AAIController* AIController = OwnerComp.GetAIOwner();
 	if (!AIController) return EBTNodeResult::Failed;
