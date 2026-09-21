@@ -1,4 +1,5 @@
 #include "ProjectileBase.h"
+#include "PlayerCharacter.h"
 #include "BaseMonster.h"
 
 AProjectileBase::AProjectileBase()
@@ -46,7 +47,22 @@ void AProjectileBase::OnOverlapBegin(
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
 
-		Monster->TakeDamage(Damage);
+		float FinalDamage = Damage;
+
+		// 이 투사체를 발사한 플레이어 찾기
+		if (APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner()))
+		{
+			FinalDamage *= Player->GetAttackDamageMultiplier();
+		}
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Projectile Damage: %.1f"),
+			FinalDamage
+		);
+
+		Monster->TakeDamage(FinalDamage);
 		
 		DeactivateProjectile();
 

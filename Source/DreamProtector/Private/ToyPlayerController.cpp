@@ -346,8 +346,12 @@ void AToyPlayerController::Inventory()
 
 		bShowMouseCursor = true;
 
-		FInputModeGameAndUI InputMode;
-		InputMode.SetHideCursorDuringCapture(false);
+		// 인벤토리가 열려있는 동안 UI만 입력받도록 설정
+		FInputModeUIOnly InputMode;
+
+		// 키보드 포커스를 인벤토리 위젯에 지정
+		InputMode.SetWidgetToFocus(InventoryWidget->TakeWidget());
+
 		SetInputMode(InputMode);
 	}
 }
@@ -379,13 +383,24 @@ void AToyPlayerController::UseSlot1()
 
 void AToyPlayerController::UseSlot2()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Slot2 Pressed"));
-
 	APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn());
 
-	if (PlayerCharacter)
+	if (!PlayerCharacter)
 	{
+		return;
+	}
+
+	const FString LevelName = GetWorld()->GetMapName();
+
+	if (LevelName.Contains(TEXT("Stage2")))
+	{
+		// Stage2 2번 슬롯 = 별사탕
+		PlayerCharacter->UseItem(TEXT("StarCandy"));
+	}
+	else
+	{
+		// Stage1 2번 슬롯 = 바리케이드
 		PlayerCharacter->UseItem(TEXT("Barricade"));
 	}
 }
@@ -395,8 +410,21 @@ void AToyPlayerController::UseSlot3()
 	APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn());
 
-	if (PlayerCharacter)
+	if (!PlayerCharacter)
 	{
+		return;
+	}
+
+	const FString LevelName = GetWorld()->GetMapName();
+
+	if (LevelName.Contains(TEXT("Stage2")))
+	{
+		// Stage2 3번 슬롯 = 태엽 신발
+		PlayerCharacter->UseItem(TEXT("GearShoes"));
+	}
+	else
+	{
+		// Stage1 3번 슬롯 = 수면등
 		PlayerCharacter->UseItem(TEXT("SleepLamp"));
 	}
 }
