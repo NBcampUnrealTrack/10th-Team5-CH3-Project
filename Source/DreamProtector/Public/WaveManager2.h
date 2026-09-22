@@ -8,6 +8,8 @@ class ASpawnVolume;
 class ABaseMonster;
 class AElevator;
 class AElevatorKey;
+class UAudioComponent;
+class USoundBase;
 
 USTRUCT(BlueprintType)
 struct FPhase2SpawnData
@@ -66,7 +68,7 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
 	TArray<FPhase2SpawnData> Phase2SpawnData;
 
-	// 180초에 생성할 엘리베이터
+	// Stage2 시작 후 225초에 생성할 엘리베이터
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
 	TSubclassOf<AElevator> ElevatorClass;
 
@@ -79,11 +81,14 @@ protected:
 
 	void StartPhase1();
 	void StartPhase2();
+	void StartPreparation();
 
 	// Stage 2 시간 이벤트를 관리하는 타이머
 	FTimerHandle Phase1TimerHandle;
 	FTimerHandle Phase2TimerHandle;
 	FTimerHandle ElevatorTimerHandle;
+	FTimerHandle PreparationTimerHandle;
+	FTimerHandle FinalPreparationTimerHandle;
 
 	// 2-2 몬스터 스폰
 	void SpawnPhase2Monsters();
@@ -117,6 +122,24 @@ protected:
 	// 2-2 클리어 후 엘리베이터 키 생성
 	void SpawnElevatorKey();
 
+	// BGM을 재생하는 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<UAudioComponent> BGMComponent;
+
+	// 튜토리얼 음악
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> TutorialBGM;
+
+	// 웨이브 전투 음악
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> BattleBGM;
+
+	// 준비시간 음악
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> PreparationBGM;
+
+	// 현재 음악을 멈추고 새 음악을 재생
+	void ChangeBGM(USoundBase* NewMusic);
 public:
 	virtual void Tick(float DeltaTime) override;
 };

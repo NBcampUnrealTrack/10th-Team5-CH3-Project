@@ -16,7 +16,8 @@
 //블루프린트 위젯사용 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-
+//현재 레벨 이름을 가져오기 위해 필요
+#include "Kismet/GameplayStatics.h"
 
 
 
@@ -85,7 +86,13 @@ void AToyPlayerController::BeginPlay()
 		}
 	}
 
-	if (TutorialWidgetClass)
+	// 실행 중인 맵 이름을 가져옵니다.
+	// true: 에디터 실행 시 붙는 접두사를 제거합니다.
+	const FString CurrentLevelName =
+		UGameplayStatics::GetCurrentLevelName(this, true);
+
+	// Stage1에서만 튜토리얼 위젯을 생성합니다.
+	if (CurrentLevelName == TEXT("Stage1") && TutorialWidgetClass)
 	{
 		TutorialWidget = CreateWidget<UUserWidget>(
 			this,
@@ -94,13 +101,10 @@ void AToyPlayerController::BeginPlay()
 
 		if (TutorialWidget)
 		{
-			// MainHUD보다 앞에 표시
 			TutorialWidget->AddToViewport(10);
 
-			// 게임 입력과 UI 입력을 함께 사용
 			UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(this);
 
-			// Next 버튼을 클릭할 수 있도록 커서 표시
 			bShowMouseCursor = true;
 		}
 	}
