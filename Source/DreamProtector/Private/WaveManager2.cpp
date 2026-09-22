@@ -3,17 +3,48 @@
 #include "BaseMonster.h"
 #include "Elevator.h"
 #include "ElevatorKey.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 
 AWaveManager2::AWaveManager2()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    BGMComponent =
+        CreateDefaultSubobject<UAudioComponent>(TEXT("BGMComponent"));
+
+    BGMComponent->SetAutoActivate(false);
+    BGMComponent->bAllowSpatialization = false;
+    BGMComponent->SetUISound(false);
+    BGMComponent->bAutoDestroy = false;
+    BGMComponent->SetVolumeMultiplier(0.5f);
 }
 
 void AWaveManager2::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Stage 2 시작 후 135초에 2-2 전투 시작
+    ChangeBGM(TutorialBGM);
+
+    // 시작 후 30초: 2-1 전투 시작
+    GetWorldTimerManager().SetTimer(
+        Phase1TimerHandle,
+        this,
+        &AWaveManager2::StartPhase1,
+        30.0f,
+        false
+    );
+
+    // 시작 후 90초: 준비시간 시작
+    GetWorldTimerManager().SetTimer(
+        PreparationTimerHandle,
+        this,
+        &AWaveManager2::StartPreparation,
+        90.0f,
+        false
+    );
+
+    // 시작 후 135초: 2-2 전투 시작
     GetWorldTimerManager().SetTimer(
         Phase2TimerHandle,
         this,
@@ -22,12 +53,21 @@ void AWaveManager2::BeginPlay()
         false
     );
 
-    // Stage 2 시작 후 180초에 엘리베이터 생성 이벤트
+    // 225초: 두 번째 준비시간 시작
+    GetWorldTimerManager().SetTimer(
+        FinalPreparationTimerHandle,
+        this,
+        &AWaveManager2::StartPreparation,
+        225.0f,
+        false
+    );
+
+    // 270초: 준비시간 종료 후 엘리베이터 생성
     GetWorldTimerManager().SetTimer(
         ElevatorTimerHandle,
         this,
         &AWaveManager2::SpawnElevator,
-        180.0f,
+        270.0f,
         false
     );
 }
@@ -40,6 +80,8 @@ void AWaveManager2::Tick(float DeltaTime)
 // 2-1은 레벨에 미리 배치된 몬스터를 처치하는 구간
 void AWaveManager2::StartPhase1()
 {
+    ChangeBGM(BattleBGM);
+
     UE_LOG(
         LogTemp,
         Warning,
@@ -47,9 +89,22 @@ void AWaveManager2::StartPhase1()
     );
 }
 
+void AWaveManager2::StartPreparation()
+{
+    ChangeBGM(PreparationBGM);
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("===== STAGE 2 - PREPARATION START =====")
+    );
+}
+
 // 2-2 전투 시작
 void AWaveManager2::StartPhase2()
 {
+    ChangeBGM(BattleBGM);
+
     UE_LOG(
         LogTemp,
         Warning,
@@ -240,5 +295,21 @@ void AWaveManager2::SpawnElevatorKey()
             Warning,
             TEXT("===== ELEVATOR KEY SPAWN =====")
         );
+    }
+}
+
+void AWaveManager2::ChangeBGM(USoundBase* NewMusic)
+{
+    if (!BGMComponent)
+    {
+        return;
+    }
+
+    BGMComponent->Stop();
+    BGMComponent->SetSound(NewMusic);
+
+    if (NewMusic)
+    {
+        BGMComponent->Play();
     }
 }
