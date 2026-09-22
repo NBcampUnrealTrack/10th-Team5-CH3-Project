@@ -88,6 +88,8 @@ protected:
 	FTimerHandle Phase2TimerHandle;
 	FTimerHandle ElevatorTimerHandle;
 	FTimerHandle GateTimerHandle;
+	FTimerHandle PreparationTimerHandle;
+	FTimerHandle FinalPreparationTimerHandle;
 
 	// 2-2 몬스터 스폰
 	void SpawnPhase2Monsters();
