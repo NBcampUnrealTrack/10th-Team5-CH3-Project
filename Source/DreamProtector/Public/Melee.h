@@ -5,6 +5,7 @@
 #include "Components/SphereComponent.h"
 #include "Melee.generated.h"
 
+class UAnimMontage;
 UCLASS()
 class DREAMPROTECTOR_API AMelee : public ABaseMonster
 {
@@ -24,8 +25,11 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Melee")
 	TObjectPtr<USphereComponent> AttackCollision;
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Melee|Animation")
+	TObjectPtr<UAnimMontage> AttackMontage;
 	virtual void Attack_Implementation() override;
+	UFUNCTION(BlueprintCallable, Category = "Melee")
+	void ApplyMeleeDamage();
 
 	// 공격 후 쿨타임 계산용
 	float LastAttackTime = -999.f;
