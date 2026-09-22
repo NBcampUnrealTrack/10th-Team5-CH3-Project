@@ -5,6 +5,8 @@
 //UEhancedInputComponent를 사용하기 위에 필요함.
 //Input Action과 C++ 함수를 BindAction()으로 연결할떄 사용함.
 #include "EnhancedInputComponent.h"
+//카메라 시점 제한에 사용
+#include "Camera/PlayerCameraManager.h"
 //FInputActionValue를 사용하기 위해 필요함.
 //Move 입력의 Axis2D 값을 받아올 때 사용함.
 #include "InputActionValue.h"
@@ -44,6 +46,13 @@ void AToyPlayerController::BeginPlay()
 	UWidgetBlueprintLibrary::SetInputMode_GameOnly(this);
 	//마우스커서 안보이게하기
 	bShowMouseCursor = false;
+
+	//카메라 시점 제한
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->ViewPitchMin = MinCameraPitch;
+		PlayerCameraManager->ViewPitchMax = MaxCameraPitch;
+	}
 
 	//이 Controller와 연결된 로컬 플레이어를 가져온다. (로컬플레이어 = 게임을 직접 하는 사용자)
 	//Enhanced Input의 Input MappingContext를 관리하는 Subsystem이 LocalPlay에 있음.
@@ -339,6 +348,8 @@ void AToyPlayerController::Inventory()
 
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
+
+		SetIgnoreMoveInput(false);
 	}
 	else
 	{
@@ -347,8 +358,16 @@ void AToyPlayerController::Inventory()
 		bShowMouseCursor = true;
 
 		FInputModeGameAndUI InputMode;
+
+		// 마우스로 UI를 클릭할 수 있으면서
+		// 키보드 입력은 게임 쪽에서도 계속 받을 수 있도록 설정
 		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
 		SetInputMode(InputMode);
+
+		// UI를 열어도 Tab 입력을 PlayerController가 계속 받을 수 있게
+		SetIgnoreMoveInput(true);
 	}
 }
 
@@ -357,7 +376,21 @@ void AToyPlayerController::UseSlot1()
 	APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn());
 
-	if (PlayerCharacter)
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	// 현재 실행 중인 맵 이름 가져오기
+	const FString LevelName = GetWorld()->GetMapName();
+
+	// Stage2에서는 1번 슬롯 = 하트 태엽
+	if (LevelName.Contains(TEXT("Stage2")))
+	{
+		PlayerCharacter->UseItem(TEXT("HeartGear"));
+	}
+	// 그 외(Stage1)에서는 기존 태엽 폭탄
+	else
 	{
 		PlayerCharacter->UseItem(TEXT("WindupBomb"));
 	}
@@ -365,13 +398,24 @@ void AToyPlayerController::UseSlot1()
 
 void AToyPlayerController::UseSlot2()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Slot2 Pressed"));
-
 	APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn());
 
-	if (PlayerCharacter)
+	if (!PlayerCharacter)
 	{
+		return;
+	}
+
+	const FString LevelName = GetWorld()->GetMapName();
+
+	if (LevelName.Contains(TEXT("Stage2")))
+	{
+		// Stage2 2번 슬롯 = 별사탕
+		PlayerCharacter->UseItem(TEXT("StarCandy"));
+	}
+	else
+	{
+		// Stage1 2번 슬롯 = 바리케이드
 		PlayerCharacter->UseItem(TEXT("Barricade"));
 	}
 }
@@ -381,8 +425,21 @@ void AToyPlayerController::UseSlot3()
 	APlayerCharacter* PlayerCharacter =
 		Cast<APlayerCharacter>(GetPawn());
 
-	if (PlayerCharacter)
+	if (!PlayerCharacter)
 	{
+		return;
+	}
+
+	const FString LevelName = GetWorld()->GetMapName();
+
+	if (LevelName.Contains(TEXT("Stage2")))
+	{
+		// Stage2 3번 슬롯 = 태엽 신발
+		PlayerCharacter->UseItem(TEXT("GearShoes"));
+	}
+	else
+	{
+		// Stage1 3번 슬롯 = 수면등
 		PlayerCharacter->UseItem(TEXT("SleepLamp"));
 	}
 }

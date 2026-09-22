@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimMontage.h"
 #include "Particles/ParticleSystem.h"
+#include "EnemyProjectile.h"
 #include "Sound/SoundBase.h"
 
 AFlyingRanged::AFlyingRanged()
@@ -34,23 +35,27 @@ void AFlyingRanged::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 타겟(플레이어)가 없거나 죽으면 아무것도 하기 싫어요~
-	if (CurrentHealth <= 0.0f) return;
+	if (CurrentHealth <= 0.0f)
+	{
+		return;
+	}
 
-	// 추적 / 공격은 BT 담당이라 비행 관련 물리만 처리
 	if (CheckObstacleAhead())
 	{
-		// 장애물 회피 우선
 		AvoidObstacle(DeltaTime);
 	}
-	// 프레임마다 높이 조정
-	MaintainFlightHeight(DeltaTime);
 
-	if (Target && IsTargetInAttackRange())
+	if (Target)
 	{
-		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		// 이동 중이든 공격 중이든 계속 플레이어를 바라봄
+		FaceTarget(DeltaTime);
+
+		if (IsTargetInAttackRange())
 		{
-			Movement->StopMovementImmediately();
+			if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+			{
+				Movement->StopMovementImmediately();
+			}
 		}
 	}
 }
@@ -58,19 +63,19 @@ void AFlyingRanged::Tick(float DeltaTime)
 void AFlyingRanged::MoveTowardsTarget()
 {
 	if (!Target) return;
-
 	if (IsTargetInAttackRange()) return;
 
-	FVector Direction = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-	// CharacterMovementComponent 로 이동 입력 적용
+	FVector TargetLocation = Target->GetActorLocation();
+
+	// 플레이어보다 일정 높이 위를 목표로 함
+	TargetLocation.Z += FlyHeight;
+
+	FVector Direction =
+		(TargetLocation - GetActorLocation()).GetSafeNormal();
+
 	AddMovementInput(Direction, 1.0f);
 
-	// 몸은 항상 타겟을 바라보게 회전
-	FVector LookDirection = (Target->GetActorLocation() - GetActorLocation());
-	// 수평 회전
-	LookDirection.Z = 0.0f;
-	FRotator NewRotation = LookDirection.Rotation();
-	SetActorRotation(FMath::RInterpTo(GetActorRotation(), NewRotation, GetWorld()->GetDeltaSeconds(), 5.0f));
+	
 }
 
 void AFlyingRanged::MaintainFlightHeight(float DeltaTime)
@@ -117,8 +122,13 @@ bool AFlyingRanged::CanAttack() const
 
 void AFlyingRanged::Attack_Implementation()
 {
+	
 	// 공격 애니메이션
-	if (!Target) return;
+	if (!Target)
+	{
+		
+		return;
+	}
 	// 쿨타임 갱신
 	LastAttackTime = GetWorld()->GetTimeSeconds();
 
@@ -149,5 +159,79 @@ void AFlyingRanged::Attack_Implementation()
 		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
 	}
 
-	// 투사체(AEnemyProjectile) 스폰 방식으로 갈지, 즉시 데미지 적용할지 결정 필요
+	// 발사할 투사체 클래스가 설정되지 않았다면 발사하지 않음
+	if (!EnemyProjectileClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemyProjectileClass is not set"));
+		return;
+	}
+
+	// 총알이 생성될 위치
+	FVector SpawnLocation =
+		GetMesh()->GetSocketLocation(AttackEffectSocketName);
+
+	// 플레이어 위치
+	FVector TargetLocation =
+		Target->GetActorLocation();
+
+	// 플레이어 몸 중심 정도를 조준하도록 높이를 조금 올림
+	TargetLocation.Z += 50.0f;
+
+	// 발사 위치에서 플레이어를 향하는 방향 계산
+	FVector FireDirection =
+		(TargetLocation - SpawnLocation).GetSafeNormal();
+
+	// 방향 벡터를 회전값으로 변환
+	FRotator SpawnRotation =
+		FireDirection.Rotation();
+
+	// EnemyProjectile 생성
+	AEnemyProjectile* Projectile =
+		GetWorld()->SpawnActor<AEnemyProjectile>(
+			EnemyProjectileClass,
+			SpawnLocation,
+			SpawnRotation
+		);
+
+	if (Projectile)
+	{
+		// 자기 자신과 투사체가 충돌하지 않도록
+		Projectile->SetOwner(this);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("FlyingRanged Projectile Fired")
+		);
+	}
+}
+
+void AFlyingRanged::FaceTarget(float DeltaTime)
+{
+	if (!Target)
+	{
+		return;
+	}
+
+	FVector LookDirection =
+		Target->GetActorLocation() - GetActorLocation();
+
+	// 위아래로 기울지 않고 좌우로만 회전
+	LookDirection.Z = 0.0f;
+
+	if (LookDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	FRotator TargetRotation = LookDirection.Rotation();
+
+	FRotator NewRotation = FMath::RInterpTo(
+		GetActorRotation(),
+		TargetRotation,
+		DeltaTime,
+		5.0f
+	);
+
+	SetActorRotation(NewRotation);
 }
