@@ -4,7 +4,7 @@
 #include "GameFramework/Character.h"
 #include "BaseMonster.generated.h"
 
-
+class UDropComponent;
 
 UCLASS()
 class DREAMPROTECTOR_API ABaseMonster : public ACharacter
@@ -53,6 +53,9 @@ public:
 	bool IsPhase2Monster() const { return bIsPhase2Monster; }
 
 protected:
+	// 몬스터 사망 시 아이템 드롭을 담당하는 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Drop")
+	UDropComponent* DropComponent;
 
 	virtual void Attack_Implementation();
 	// 최대 체력
