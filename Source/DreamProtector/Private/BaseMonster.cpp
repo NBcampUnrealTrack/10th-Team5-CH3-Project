@@ -3,6 +3,7 @@
 #include "WaveManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "MonsterAIController.h"
+#include "DropComponent.h"
 
 ABaseMonster::ABaseMonster()
 {
@@ -18,6 +19,9 @@ ABaseMonster::ABaseMonster()
 	AIControllerClass = AMonsterAIController::StaticClass();
 	// 레벨에 미리 배치 OR 스폰하면 자동으로 AI가 빙의 설정
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	//몬스터 사망시 아이템 드롭을 담당하는 컴포넌트 생성
+	DropComponent = CreateDefaultSubobject<UDropComponent>(TEXT("DropComponent"));
 }
 
 void ABaseMonster::BeginPlay()   
@@ -93,6 +97,13 @@ void ABaseMonster::Die_Implementation()
 	SetActorEnableCollision(false);                       
 
 	
+	//아이템 드롭 컴포넌트가 있을시 죽은위치 기준으로 아이템 드롭
+	if (DropComponent)
+	{
+		DropComponent->DropItem();
+	}
+
+
 	// WaveManager에게 몬스터가 죽었다고 알림
 	if (AWaveManager* WaveManager =
 		Cast<AWaveManager>(
