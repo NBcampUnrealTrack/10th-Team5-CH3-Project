@@ -48,6 +48,10 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Monster|Damage")
 	void Die();
+	// 2-2 몬스터로 설정
+	void SetIsPhase2Monster(bool bInIsPhase2Monster);
+	// 2-2 몬스터인지 확인
+	bool IsPhase2Monster() const { return bIsPhase2Monster; }
 
 protected:
 
@@ -68,6 +72,10 @@ protected:
     // 추적 / 공격 대상
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
 	TObjectPtr<AActor> Target;      
+	// Stage 2의 2-2에서 스폰된 몬스터인지 여부
+	UPROPERTY()
+	bool bIsPhase2Monster = false;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Stats")
 	float AttackInterval = 1.5f;

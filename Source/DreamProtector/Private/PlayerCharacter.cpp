@@ -867,7 +867,7 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 			0.0f,
 			MaxHP
 		);
-
+		OnHealthChanged.Broadcast(CurrentHP, MaxHP);
 		// 사용에 성공했으므로 인벤토리에서 하트 태엽 1개 제거
 		Inventory->RemoveItems(ItemKey, 1);
 
@@ -881,7 +881,153 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 
 		return true;
 	}
+	case EItemUseType::StarCandy:
+	{
+		// 공격력 30% 증가
+		AttackDamageMultiplier = 1.3f;
+
+		// 기존 타이머가 있다면 초기화
+		GetWorldTimerManager().ClearTimer(StarCandyTimerHandle);
+
+		// 20초 후 공격력 원상복구
+		GetWorldTimerManager().SetTimer(
+			StarCandyTimerHandle,
+			[this]()
+			{
+				AttackDamageMultiplier = 1.0f;
+
+				UE_LOG(LogTemp, Warning, TEXT("StarCandy Buff End"));
+			},
+			20.0f,
+			false
+		);
+
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("StarCandy Used - Attack x1.3"));
+
+		return true;
+	}
+
+	case EItemUseType::GearShoes:
+	{
+		UCharacterMovementComponent* Movement = GetCharacterMovement();
+
+		if (!Movement)
+		{
+			return false;
+		}
+
+		// 이미 신발 버프가 적용 중이 아니라면 원래 속도 저장
+		if (!GetWorldTimerManager().IsTimerActive(GearShoesTimerHandle))
+		{
+			OriginalWalkSpeed = Movement->MaxWalkSpeed;
+		}
+
+		// 원래 이동속도의 125%
+		Movement->MaxWalkSpeed = OriginalWalkSpeed * 1.25f;
+
+		// 다시 사용하면 기존 타이머 초기화
+		GetWorldTimerManager().ClearTimer(GearShoesTimerHandle);
+
+		// 15초 후 원래 속도로 복구
+		GetWorldTimerManager().SetTimer(
+			GearShoesTimerHandle,
+			[this]()
+			{
+				if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+				{
+					MovementComp->MaxWalkSpeed = OriginalWalkSpeed;
+
+					UE_LOG(
+						LogTemp,
+						Warning,
+						TEXT("GearShoes Buff End - Speed: %.1f"),
+						OriginalWalkSpeed
+					);
+				}
+			},
+			15.0f,
+			false
+		);
+
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("GearShoes Used - Speed: %.1f"),
+			Movement->MaxWalkSpeed
+		);
+
+		return true;
+	}
 	default:
 		return false;
+	}
+}
+
+void APlayerCharacter::Die()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	bIsDead = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("Player Dead"));
+
+	// 플레이어 이동 정지
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	// 플레이어 입력 비활성화
+	if (APlayerController* PlayerController =
+		Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PlayerController);
+	}
+	OnPlayerDied.Broadcast();
+}
+
+float APlayerCharacter::GetAttackDamageMultiplier() const
+{
+	return AttackDamageMultiplier;
+}
+
+
+void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
+{
+	// 이미 죽은 상태면 추가 데미지 무시
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 체력 감소
+	CurrentHP = FMath::Clamp(
+		CurrentHP - DamageAmount,
+		0.0f,
+		MaxHP
+	);
+	// UI에게 HP가 변경됐다고 알림
+	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Player Hit! Damage: %.1f / HP: %.1f / %.1f"),
+		DamageAmount,
+		CurrentHP,
+		MaxHP
+	);
+
+	// 사망 체크
+	if (CurrentHP <= 0.0f)
+	{
+		Die();
 	}
 }

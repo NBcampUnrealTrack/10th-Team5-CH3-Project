@@ -1,6 +1,7 @@
 ﻿#include "BaseMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "WaveManager.h"
+#include "WaveManager2.h"
 #include "Kismet/GameplayStatics.h"
 #include "MonsterAIController.h"
 #include "DropComponent.h"
@@ -47,6 +48,11 @@ void ABaseMonster::SetMoveSpeed(float NewSpeed)
 	}
 }
 
+void ABaseMonster::SetIsPhase2Monster(bool bInIsPhase2Monster)
+{
+	bIsPhase2Monster = bInIsPhase2Monster;
+}
+
 void ABaseMonster::Tick(float DeltaTime)
 {
 	// 사거리 체크 후 Attack() 로직 (원거리)
@@ -86,15 +92,9 @@ void ABaseMonster::TakeDamage(float DamageAmount)
 	}
 }
 // 체력 0이하가 되면 takeDamage()에서 호출
-void ABaseMonster::Die_Implementation()                                 
+void ABaseMonster::Die_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Die_Implementation Called"));
-	if (GetCharacterMovement())
-	{// 사망 후 더 이상 움직이지 않도록 멈춤
-		GetCharacterMovement()->DisableMovement();        
-	}// 충돌 판정 끄기
-	// 애니메이션이난 이펙트 재생 및 웨이브에 알리는 곳
-	SetActorEnableCollision(false);                       
 
 	
 	//아이템 드롭 컴포넌트가 있을시 죽은위치 기준으로 아이템 드롭
@@ -112,15 +112,47 @@ void ABaseMonster::Die_Implementation()
 				AWaveManager::StaticClass()
 			)
 		))
+
+	if (GetCharacterMovement())
 	{
-		WaveManager->OnMonsterKilled();
+		GetCharacterMovement()->DisableMovement();
 	}
 
+	SetActorEnableCollision(false);
+
+	// 2-2 몬스터인지 확인
+	if (IsPhase2Monster())
+	{
+		if (AWaveManager2* WaveManager2 =
+			Cast<AWaveManager2>(
+				UGameplayStatics::GetActorOfClass(
+					GetWorld(),
+					AWaveManager2::StaticClass()
+				)
+			))
+		{
+			WaveManager2->OnPhase2MonsterKilled();
+		}
+	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("WaveManager NOT Found"));
+		// 기존 Stage 1 몬스터
+		if (AWaveManager* WaveManager =
+			Cast<AWaveManager>(
+				UGameplayStatics::GetActorOfClass(
+					GetWorld(),
+					AWaveManager::StaticClass()
+				)
+			))
+		{
+			WaveManager->OnMonsterKilled();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("WaveManager NOT Found"));
+		}
 	}
-	// 액터 제거
-	Destroy();                                            
+
+	Destroy();
 }
 
