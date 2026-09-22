@@ -391,65 +391,64 @@ void APlayerCharacter::StopAttack()
 	}
 }
 
-	void APlayerCharacter::TryInteract()
+void APlayerCharacter::TryInteract()
+{
+	// 상호작용 탐색 거리
+	const float InteractionDistance = 500.0f;
+
+	// 상호작용 탐색 범위
+	const float InteractionRadius = 120.0f;
+
+	// 플레이어 위치부터 시작
+	FVector Start = GetActorLocation();
+
+	// 플레이어가 바라보는 방향으로 500만큼 떨어진 위치
+	FVector End =
+		Start + GetActorForwardVector() * InteractionDistance;
+
+	// Sweep 결과를 저장할 변수
+	FHitResult HitResult;
+
+	// 충돌 검사 조건
+	FCollisionQueryParams Params;
+
+	// 자기 자신은 검사 대상에서 제외
+	Params.AddIgnoredActor(this);
+
+	// Visibility 채널에 충돌하는 Actor 탐색
+	bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(InteractionRadius),
+		Params
+	);
+
+
+	// 무언가 감지됐을 때만 실행
+	if (bHit)
 	{
-		//플레이어 위치에서 정면 300거리까지 상호작용 탐색
-		FVector Start = GetActorLocation();
-		FVector End = Start + GetActorForwardVector() * 300.0f;
+		// 감지된 Actor 가져오기
+		AActor* HitActor = HitResult.GetActor();
 
-		//Line Trace 결과 저장
-		FHitResult HitResult;
-
-		//조건 설정
-		FCollisionQueryParams Params;
-
-		//자기 자신에게 충돌하지 않도록
-		Params.AddIgnoredActor(this);
-
-		// 반지름 100의 구를 Start ~ End까지 이동시켜 충돌한 Actor 탐색
-		bool bHit = GetWorld()->SweepSingleByChannel(
-			HitResult,
-			Start,
-			End,
-			FQuat::Identity,
-			ECC_Visibility,
-			FCollisionShape::MakeSphere(100.0f),
-			Params
-		);
-
-		// 테스트용 상호작용 범위 확인
-		DrawDebugSphere(
-			GetWorld(),
-			Start,
-			100.0f,
-			16,
-			FColor::Red,
-			false,
-			2.0f
-		);
-
-
-		// 감지했다면
-		if (bHit)
+		// 해당 Actor가 존재하면서
+		// IInteractable 인터페이스를 구현했는지 확인
+		if (HitActor && HitActor->Implements<UInteractable>())
 		{
-			//Actor 가져오기
-			AActor* HitActor = HitResult.GetActor();
+			IInteractable* Interactable =
+				Cast<IInteractable>(HitActor);
 
-			//Actor가 존재하고 IInteractable이 있다면
-			if (HitActor && HitActor->Implements<UInteractable>())
+			if (Interactable)
 			{
-				//캐스팅
-				IInteractable* Interactable = Cast<IInteractable>(HitActor);
-
-				//성공했다면 상호작용
-				if (Interactable)
-				{
-					//현재 Player
-					Interactable->Interact(this);
-				}
+				// 플레이어 자신을 전달하면서 상호작용 실행
+				Interactable->Interact(this);
 			}
 		}
 	}
+}
+
 //게터 현재 체력
 float APlayerCharacter::GetCurrentHP()const
 {
