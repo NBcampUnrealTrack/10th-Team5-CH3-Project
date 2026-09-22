@@ -3,9 +3,11 @@
 #include "BaseMonster.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
+#include "BaseMonster.h"
+#include "BossMonster.h"
+#include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundAttenuation.h"
-
 
 AProjectileBase::AProjectileBase()
 {
@@ -49,6 +51,29 @@ void AProjectileBase::OnOverlapBegin(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
+	{
+		return;
+	}
+
+	if (ABaseMonster* Monster = Cast<ABaseMonster>(OtherActor))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
+		Monster->TakeDamage(Damage);
+		DeactivateProjectile();
+		return;
+	}
+
+	// 보스는 BaseMonster를 상속하지 않는 별도 클래스라 추가 분기
+	if (ABossMonster* Boss = Cast<ABossMonster>(OtherActor))
+	{
+		FDamageEvent DamageEvent;
+		AController* NullController = nullptr;
+		Boss->TakeDamage(Damage, DamageEvent, NullController, this);
+		DeactivateProjectile();
+		return;
+	}
+
 	//충돌한 Actor가 유효하지 않거나 나 자신이라면 무시
 	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
 	{

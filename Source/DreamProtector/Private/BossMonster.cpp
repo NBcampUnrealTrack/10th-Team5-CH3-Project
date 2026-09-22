@@ -3,6 +3,7 @@
 #include "BrainComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -139,9 +140,11 @@ void ABossMonster::OnPhaseTransitionMontageEnded(UAnimMontage* Montage, bool bIn
 
 void ABossMonster::HandleDeath()
 {
-	if (bIsDead)
+	if (bIsDead) return;
+
+	if (GEngine)
 	{
-		return;
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("HandleDeath called!"));
 	}
 
 	bIsDead = true;
@@ -154,6 +157,36 @@ void ABossMonster::HandleDeath()
 			AIController->GetBrainComponent()->StopLogic(TEXT("BossDied"));
 		}
 	}
+
+	// [테스트용] 일단 트레이스 없이 보스 위치에 바로 재생
+	if (DeathGroundEffect)
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
+				FString::Printf(TEXT("Spawning effect at: %s"), *GetActorLocation().ToString()));
+		}
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathGroundEffect, GetActorLocation(), FRotator::ZeroRotator);
+	}
+
+	/* 발밑에 사망 이펙트(마법진 등) 재생 - 아래로 트레이스해서 실제 바닥 위치를 찾음
+	if (DeathGroundEffect)
+	{
+		FVector TraceStart = GetActorLocation();
+		FVector TraceEnd = TraceStart - FVector(0.f, 0.f, 5000.f);
+
+		FHitResult HitResult;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+
+		FVector EffectLocation = TraceStart;
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+		{
+			EffectLocation = HitResult.Locawtion;
+		}
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathGroundEffect, EffectLocation, FRotator::ZeroRotator);
+	}*/
 
 	if (DeathMontage)
 	{
@@ -193,6 +226,15 @@ void ABossMonster::UpdatePhaseInBlackboard()
 void ABossMonster::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White,
+			FString::Printf(TEXT("bIntroFinished=%s | State=%d | Time=%.2f"),
+				bIntroFinished ? TEXT("TRUE") : TEXT("false"),
+				(int32)CurrentIntroState,
+				GetWorld()->GetTimeSeconds()));
+	}
 
 	if (bIsGrowing && GetMesh())
 	{
@@ -235,29 +277,27 @@ void ABossMonster::Tick(float DeltaTime)
 
 			bIsGrowing = false;
 		}
+
+		if (Alpha >= 1.0f)
+		{
+			GetMesh()->SetRelativeScale3D(
+				FVector(TargetMeshScale)
+			);
+			SetActorLocation(AnchorLocation);
+
+			bIsGrowing = false;
+
+			// 콜리전(캡슐)도 메시 크기에 맞춰 확대 - 안 그러면 발사체가 비주얼상 몸통을 그냥 통과함
+			if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+			{
+				Capsule->SetCapsuleSize(
+					Capsule->GetUnscaledCapsuleRadius() * TargetMeshScale,
+					Capsule->GetUnscaledCapsuleHalfHeight() * TargetMeshScale
+				);
+			}
+		}
 	}
 
-	if (CurrentIntroState == EBossIntroState::Lunging)
-	{
-		//const FVector NewLoc = FMath::VInterpConstantTo(GetActorLocation(), LungeTargetLocation, DeltaTime, IntroMoveSpeed);
-		//SetActorLocation(NewLoc);
-
-		//if (FVector::Dist(GetActorLocation(), LungeTargetLocation) <= IntroArrivalTolerance)
-		//{
-		//	// 돌진 도착 -> 바로 상승하지 않고 잠깐 대기 (Pausing 상태로 전환)
-		//	CurrentIntroState = EBossIntroState::Pausing;
-		//	SetActorLocation(LungeTargetLocation);
-
-		//	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-		//	{
-		//		MoveComp->StopMovementImmediately();
-		//	}
-
-		//	GetWorldTimerManager().SetTimer(IntroPauseTimerHandle, this, &ABossMonster::BeginRisingPhase, IntroPauseDuration, false);
-		//}
-	}
-
-	//else if (CurrentIntroState == EBossIntroState::Pausing)
 	if (CurrentIntroState == EBossIntroState::Pausing)
 	{
 		// 대기 중엔 위치 고정 (Flying 무브먼트 잔여 관성으로 밀리는 것 방지)
@@ -278,12 +318,21 @@ void ABossMonster::Tick(float DeltaTime)
 				if (UBlackboardComponent* BB =
 					AIController->GetBlackboardComponent())
 				{
-					BB->SetValueAsBool(
-						TEXT("bIntroFinished"),
-						true
-					);
+					BB->SetValueAsBool(TEXT("bIntroFinished"),true);
 				}
 			}
+		}
+	}
+
+	// 등장 씬 종료 후엔 매 프레임 플레이어 쪽으로 회전 (Pausing/Rising과 별개로 항상 체크)
+	if (CurrentIntroState == EBossIntroState::Done)
+	{
+		if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+		{
+			const FVector ToPlayer = PlayerPawn->GetActorLocation() - GetActorLocation();
+			const FRotator TargetRot = FRotator(0.f, ToPlayer.Rotation().Yaw, 0.f);
+			const FRotator NewRot = FMath::RInterpConstantTo(GetActorRotation(), TargetRot, DeltaTime, FaceTargetRotationSpeed);
+			SetActorRotation(NewRot);
 		}
 	}
 }
@@ -321,26 +370,19 @@ void ABossMonster::BeginRisingPhase()
 			AnimInstance->Montage_Play(RoarMontage);
 		}
 	}
+
+	// GrowDelay만큼 기다린 후 성장 시작
+	FTimerHandle GrowStartTimerHandle;
+	GetWorldTimerManager().SetTimer(GrowStartTimerHandle, this, &ABossMonster::BeginGrowing, GrowDelay, false);
 }
 
-//void ABossMonster::StartIntroSequence()
-//{
-//	// 이미 시작했거나 끝났으면 중복 실행 방지
-//	if (CurrentIntroState != EBossIntroState::NotStarted)
-//	{
-//		return;
-//	}
-//
-//	CurrentIntroState = EBossIntroState::Lunging;
-//
-//	if (LungeMontage)
-//	{
-//		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
-//		{
-//			AnimInstance->Montage_Play(LungeMontage);
-//		}
-//	}
-//}
+void ABossMonster::BeginGrowing()
+{
+	bIsGrowing = true;
+	GrowElapsedTime = 0.f;
+	GrowStartScale = GetMesh() ? GetMesh()->GetRelativeScale3D() : FVector::OneVector;
+	GrowStartLocation = GetActorLocation();
+}
 
 void ABossMonster::StartIntroSequence()
 {
@@ -410,4 +452,63 @@ void ABossMonster::OnLungeMontageEnded(
 			IntroPauseDuration,
 			false);
 	}
+}
+
+void ABossMonster::FireRangedAttack()
+{
+	// 사운드는 애니메이션보다 1초 늦게 재생
+	GetWorldTimerManager().SetTimer(RangedAttackSoundTimerHandle, this, &ABossMonster::PlayRangedAttackSound, 1.f, false);
+
+	if (RangedAttackMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			AnimInstance->Montage_Play(RangedAttackMontage);
+		}
+	}
+
+	// 시전 동작 재생 후 딜레이 뒤에 실제 발사
+	GetWorldTimerManager().SetTimer(RangedAttackTimerHandle, this, &ABossMonster::SpawnRangedProjectile, RangedAttackCastDelay, false);
+}
+
+void ABossMonster::PlayRangedAttackSound()
+{
+	if (RangedAttackCastSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, RangedAttackCastSound, GetActorLocation());
+	}
+}
+
+void ABossMonster::SpawnRangedProjectile()
+{
+	if (!RangedProjectileClass)
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	// 낫 소켓 위치에서, 낫/보스 메시 콜리전을 피하기 위해 앞으로 + 위로 더 밀어서 발사
+	FVector SocketLocation = GetActorLocation();
+	if (GetMesh() && GetMesh()->DoesSocketExist(TEXT("hand_rSocket_Scythe")))
+	{
+		SocketLocation = GetMesh()->GetSocketLocation(TEXT("hand_rSocket_Scythe"));
+	}
+
+	const FVector SpawnLocation = SocketLocation
+		+ GetActorForwardVector() * RangedSpawnForwardOffset
+		+ FVector(0.f, 0.f, RangedSpawnUpOffset);
+
+	const FVector ToPlayer = PlayerPawn->GetActorLocation() - SpawnLocation;
+	const FRotator SpawnRotation = ToPlayer.Rotation();
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	GetWorld()->SpawnActor<AActor>(RangedProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
 }
