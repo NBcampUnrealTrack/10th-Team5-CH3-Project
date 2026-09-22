@@ -40,17 +40,17 @@ class DREAMPROTECTOR_API ABossMonster : public ACharacter
 	GENERATED_BODY()
 
 public:
-	
+
 	ABossMonster();
 
 protected:
-	
+
 	virtual void BeginPlay() override;
 
-public:	
+public:
 
 	virtual void Tick(float DeltaTime) override;
-	
+
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
 		class AController* EventInstigator, AActor* DamageCauser) override;
 
@@ -88,7 +88,7 @@ public:
 	// 등장 씬에서 돌진할 목표 지점, 레벨의 "BossLungeTarget" 태그 액터 위치로 Beginplay에서 자동 세팅
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Movement")
 	FVector LungeTargetLocation;
-	
+
 	// 근접 공격 등으로 앵커를 벗어났다가 되돌아갈 때 호출 (Flying 모드라 집정 이동 필요)
 	UFUNCTION(BlueprintCallable, Category = "Boss|Movement")
 	FVector GetAnchorLocation() const;
@@ -113,28 +113,6 @@ public:
 	// 돌진 도착 후 상승 시작 전까지 대기 시간 (초)
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Intro")
 	float IntroPauseDuration = 1.5f;
-
-	// 보스가 커지는 데 걸리는 시간
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Intro")
-	float GrowDuration = 2.0f;
-
-	// Roar와 상승이 시작된 후, 커지기까지 기다릴 시간
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Intro")
-	float GrowDelay = 0.6f;
-
-	// 최종 Mesh 크기
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Intro")
-	float TargetMeshScale = 8.0f;
-
-	// 성장 진행 상태
-	bool bIsGrowing = false;
-	float GrowElapsedTime = 0.0f;
-
-	// 성장 시작 당시의 크기
-	FVector GrowStartScale = FVector::OneVector;
-
-	// 성장과 상승을 시작하는 위치
-	FVector GrowStartLocation = FVector::ZeroVector;
 
 	// 대기 끝나고 상승 단계 시작 (타이머 콜백용)
 	void BeginRisingPhase();
@@ -203,7 +181,7 @@ public:
 	class USoundBase* HitSound;
 
 	//------------ 공격
-	
+
 	// 원거리 공격용 발사체 클래스 (BP_ky_thunderBall 등을 BP_BossMonster에서 지정)
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
 	TSubclassOf<AActor> RangedProjectileClass;
