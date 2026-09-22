@@ -26,6 +26,24 @@ void AWaveManager2::BeginPlay()
 
     ChangeBGM(TutorialBGM);
 
+    // 2-1 전투 시작 3초 전
+    GetWorldTimerManager().SetTimer(
+        Phase1CountdownTimerHandle,
+        this,
+        &AWaveManager2::NotifyPhase1Countdown,
+        27.0f,
+        false
+    );
+
+    // 2-2 전투 시작 3초 전
+    GetWorldTimerManager().SetTimer(
+        Phase2CountdownTimerHandle,
+        this,
+        &AWaveManager2::NotifyPhase2Countdown,
+        132.0f,
+        false
+    );
+
     // 시작 후 30초: 2-1 전투 시작
     GetWorldTimerManager().SetTimer(
         Phase1TimerHandle,
@@ -348,4 +366,14 @@ void AWaveManager2::ChangeBGM(USoundBase* NewMusic)
     {
         BGMComponent->Play();
     }
+}
+
+void AWaveManager2::NotifyPhase1Countdown()
+{
+    OnWaveCountdownStarted.Broadcast(1);
+}
+
+void AWaveManager2::NotifyPhase2Countdown()
+{
+    OnWaveCountdownStarted.Broadcast(2);
 }

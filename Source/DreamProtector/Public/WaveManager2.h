@@ -4,6 +4,12 @@
 #include "GameFramework/Actor.h"
 #include "WaveManager2.generated.h"
 
+// HUD에 카운트다운 시작과 웨이브 번호를 전달하는 이벤트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnStage2WaveCountdownStarted,
+	int32, WaveNumber
+);
+
 class ASpawnVolume;
 class ABaseMonster;
 class AElevator;
@@ -42,6 +48,10 @@ public:
 	AWaveManager2();
 	// 2-2 몬스터가 죽었을 때 호출
 	void OnPhase2MonsterKilled();
+
+	// 블루프린트에서 연결할 수 있는 카운트다운 시작 알림
+	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
+	FOnStage2WaveCountdownStarted OnWaveCountdownStarted;
 
 protected:
 	virtual void BeginPlay() override;
@@ -89,7 +99,14 @@ protected:
 	FTimerHandle ElevatorTimerHandle;
 	FTimerHandle GateTimerHandle;
 	FTimerHandle PreparationTimerHandle;
-	FTimerHandle FinalPreparationTimerHandle;
+	FTimerHandle FinalPreparationTimerHandle;\
+	// 각 전투의 카운트다운 시작을 예약하는 타이머
+	FTimerHandle Phase1CountdownTimerHandle;
+	FTimerHandle Phase2CountdownTimerHandle;
+
+	// HUD에 카운트다운 시작을 알리는 함수
+	void NotifyPhase1Countdown();
+	void NotifyPhase2Countdown();
 
 	// 2-2 몬스터 스폰
 	void SpawnPhase2Monsters();
