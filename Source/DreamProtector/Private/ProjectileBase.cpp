@@ -1,5 +1,7 @@
-#include "ProjectileBase.h"
+ï»¿#include "ProjectileBase.h"
 #include "BaseMonster.h"
+#include "BossMonster.h"
+#include "Engine/DamageEvents.h"
 
 AProjectileBase::AProjectileBase()
 {
@@ -12,16 +14,16 @@ AProjectileBase::AProjectileBase()
 	StaticMeshComp->SetupAttachment(SphereCollision);
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	//Ã³À½ ¹ß»ç ¼Óµµ
+	//ì²˜ìŒ ë°œì‚¬ ì†ë„
 	ProjectileMovement->InitialSpeed = 5000.0f;
-	//ÃÖ´ë ¼Óµµ
+	//ìµœëŒ€ ì†ë„
 	ProjectileMovement->MaxSpeed = 5000.0f;
-	//³¯¾Æ°¡´Â ¹æÇâÀ» ¹Ù¶óº¸°Ô ÇÒ°Å³Ä true/false
+	//ë‚ ì•„ê°€ëŠ” ë°©í–¥ì„ ë°”ë¼ë³´ê²Œ í• ê±°ëƒ true/false
 	ProjectileMovement->bRotationFollowsVelocity = true;
-	//Áß·Â ¿µÇâ (ÇöÀç´Â 0 == Á÷¼±)
+	//ì¤‘ë ¥ ì˜í–¥ (í˜„ì¬ëŠ” 0 == ì§ì„ )
 	ProjectileMovement->ProjectileGravityScale = 0.1f;
 
-	//SphereCollision¿¡¼­ OverlapÀÌ ½ÃÀÛ µÉ¶§ ÇöÀç °´Ã¼¿¡¼­ OnOverlap ÇÔ¼ö ½ÇÇà
+	//SphereCollisionì—ì„œ Overlapì´ ì‹œì‘ ë ë•Œ í˜„ì¬ ê°ì²´ì—ì„œ OnOverlap í•¨ìˆ˜ ì‹¤í–‰
 	SphereCollision->OnComponentBeginOverlap.AddDynamic(
 		this,
 		&AProjectileBase::OnOverlapBegin
@@ -36,7 +38,30 @@ void AProjectileBase::OnOverlapBegin(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	//Ãæµ¹ÇÑ Actor°¡ À¯È¿ÇÏÁö ¾Ê°Å³ª ³ª ÀÚ½ÅÀÌ¶ó¸é ¹«½Ã
+	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
+	{
+		return;
+	}
+
+	if (ABaseMonster* Monster = Cast<ABaseMonster>(OtherActor))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
+		Monster->TakeDamage(Damage);
+		DeactivateProjectile();
+		return;
+	}
+
+	// ë³´ìŠ¤ëŠ” BaseMonsterë¥¼ ìƒì†í•˜ì§€ ì•ŠëŠ” ë³„ë„ í´ë˜ìŠ¤ë¼ ì¶”ê°€ ë¶„ê¸°
+	if (ABossMonster* Boss = Cast<ABossMonster>(OtherActor))
+	{
+		FDamageEvent DamageEvent;
+		AController* NullController = nullptr;
+		Boss->TakeDamage(Damage, DamageEvent, NullController, this);
+		DeactivateProjectile();
+		return;
+	}
+
+	//ì¶©ëŒí•œ Actorê°€ ìœ íš¨í•˜ì§€ ì•Šê±°ë‚˜ ë‚˜ ìì‹ ì´ë¼ë©´ ë¬´ì‹œ
 	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
 	{
 		return;
@@ -88,7 +113,7 @@ void AProjectileBase::ActivateProjectile(
 			ProjectileMovement->InitialSpeed;
 	}
 
-	// ºø³ª°£ ÃÑ¾Ëµµ 3ÃÊ ÈÄ Ç®·Î ¹İÈ¯
+	// ë¹—ë‚˜ê°„ ì´ì•Œë„ 3ì´ˆ í›„ í’€ë¡œ ë°˜í™˜
 	GetWorldTimerManager().SetTimer(
 		DeactivateTimerHandle,
 		this,
