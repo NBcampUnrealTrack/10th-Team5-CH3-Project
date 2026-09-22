@@ -312,9 +312,11 @@ void ABossMonster::Tick(float DeltaTime)
 			CurrentIntroState = EBossIntroState::Done;
 			bIntroFinished = true;
 
-			if (AAIController* AIController = Cast<AAIController>(GetController()))
+			if (AAIController* AIController =
+				Cast<AAIController>(GetController()))
 			{
-				if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
+				if (UBlackboardComponent* BB =
+					AIController->GetBlackboardComponent())
 				{
 					BB->SetValueAsBool(TEXT("bIntroFinished"),true);
 				}
@@ -335,13 +337,35 @@ void ABossMonster::Tick(float DeltaTime)
 	}
 }
 
+//void ABossMonster::BeginRisingPhase()
+//{
+//	CurrentIntroState = EBossIntroState::Rising;
+//
+//	if (RoarMontage)
+//	{
+//		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+//		{
+//			AnimInstance->Montage_Play(RoarMontage);
+//		}
+//	}
+//}
 void ABossMonster::BeginRisingPhase()
 {
 	CurrentIntroState = EBossIntroState::Rising;
 
+	if (GetMesh())
+	{
+		GrowStartScale = GetMesh()->GetRelativeScale3D();
+		GrowStartLocation = GetActorLocation();
+
+		GrowElapsedTime = 0.0f;
+		bIsGrowing = true;
+	}
+
 	if (RoarMontage)
 	{
-		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		if (UAnimInstance* AnimInstance =
+			GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
 		{
 			AnimInstance->Montage_Play(RoarMontage);
 		}

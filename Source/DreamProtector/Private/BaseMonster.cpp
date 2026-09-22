@@ -1,8 +1,10 @@
 ﻿#include "BaseMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "WaveManager.h"
+#include "WaveManager2.h"
 #include "Kismet/GameplayStatics.h"
 #include "MonsterAIController.h"
+#include "DropComponent.h"
 
 ABaseMonster::ABaseMonster()
 {
@@ -14,10 +16,14 @@ ABaseMonster::ABaseMonster()
 	AttackInterval = 1.5f;
 	MoveSpeed = 300.0f;
 
+	//몬스터 사망시 아이템 드롭을 담당하는 컴포넌트 생성
+	DropComponent = CreateDefaultSubobject<UDropComponent>(TEXT("DropComponent"));
+
 	// 해당 몬스터가 스폰될 때 방의할 AI 컨트롤러 지정
 	AIControllerClass = AMonsterAIController::StaticClass();
 	// 레벨에 미리 배치 OR 스폰하면 자동으로 AI가 빙의 설정
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
 }
 
 void ABaseMonster::BeginPlay()   
@@ -41,6 +47,11 @@ void ABaseMonster::SetMoveSpeed(float NewSpeed)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
 	}
+}
+
+void ABaseMonster::SetIsPhase2Monster(bool bInIsPhase2Monster)
+{
+	bIsPhase2Monster = bInIsPhase2Monster;
 }
 
 void ABaseMonster::Tick(float DeltaTime)
@@ -82,34 +93,56 @@ void ABaseMonster::TakeDamage(float DamageAmount)
 	}
 }
 // 체력 0이하가 되면 takeDamage()에서 호출
-void ABaseMonster::Die_Implementation()                                 
+void ABaseMonster::Die_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Die_Implementation Called"));
-	if (GetCharacterMovement())
-	{// 사망 후 더 이상 움직이지 않도록 멈춤
-		GetCharacterMovement()->DisableMovement();        
-	}// 충돌 판정 끄기
-	// 애니메이션이난 이펙트 재생 및 웨이브에 알리는 곳
-	SetActorEnableCollision(false);                       
 
-	
-	// WaveManager에게 몬스터가 죽었다고 알림
-	if (AWaveManager* WaveManager =
-		Cast<AWaveManager>(
-			UGameplayStatics::GetActorOfClass(
-				GetWorld(),
-				AWaveManager::StaticClass()
-			)
-		))
+	if (GetCharacterMovement())
 	{
-		WaveManager->OnMonsterKilled();
+		GetCharacterMovement()->DisableMovement();
 	}
 
+	SetActorEnableCollision(false);
+
+	//아이템 드롭 컴포넌트가 있을시 죽은위치 기준으로 아이템 드롭
+	if (DropComponent)
+	{
+		DropComponent->DropItem();
+	}
+
+	// 2-2 몬스터인지 확인
+	if (IsPhase2Monster())
+	{
+		if (AWaveManager2* WaveManager2 =
+			Cast<AWaveManager2>(
+				UGameplayStatics::GetActorOfClass(
+					GetWorld(),
+					AWaveManager2::StaticClass()
+				)
+			))
+		{
+			WaveManager2->OnPhase2MonsterKilled();
+		}
+	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("WaveManager NOT Found"));
+		// 기존 Stage 1 몬스터
+		if (AWaveManager* WaveManager =
+			Cast<AWaveManager>(
+				UGameplayStatics::GetActorOfClass(
+					GetWorld(),
+					AWaveManager::StaticClass()
+				)
+			))
+		{
+			WaveManager->OnMonsterKilled();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("WaveManager NOT Found"));
+		}
 	}
-	// 액터 제거
-	Destroy();                                            
+
+	Destroy();
 }
 

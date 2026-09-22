@@ -137,6 +137,9 @@ void APlayerCharacter::Move(const FVector2D& MovementVector)
 		return;
 	}
 
+	// 대각선 입력 시 속도가 더 빨라지지 않도록 정규화
+	FVector2D NormalizedInput = MovementVector;
+
 	//카메라가 바라보는 방향
 	FRotator ControlRotation = Controller->GetControlRotation();
 
@@ -147,22 +150,22 @@ void APlayerCharacter::Move(const FVector2D& MovementVector)
 		0.0f
 	);
 
-	//카메라 기준 전방 / 우측 방향
-	FVector ForwardDirection =
+	// 카메라 기준 전방 / 우측 방향
+	const FVector ForwardDirection =
 		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-	FVector RightDirection =
+	const FVector RightDirection =
 		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	//입력 기준
+	// 정규화된 입력값 적용
 	AddMovementInput(
 		ForwardDirection,
-		MovementVector.X
+		NormalizedInput.X
 	);
 
 	AddMovementInput(
 		RightDirection,
-		MovementVector.Y
+		NormalizedInput.Y
 	);
 }
 
@@ -191,7 +194,7 @@ void APlayerCharacter::FireCurrentWeapon()
 //ABP
 void APlayerCharacter::EndAttackAnimation()
 {
-	bIsAttacking = false;
+	//bIsAttacking = false;
 
 	// 현재 카메라 모드의 회전 설정으로 복귀
 	ApplyControlMode(CurrentControlMode);
@@ -209,13 +212,13 @@ void APlayerCharacter::StartAttack()
 	);
 
 
-	// 쿨타임 중이면 공격 불가
+	// 단발 쿨타임 중이면 공격 불가
 	if (!bCanAttack)
 	{
 		return;
 	}
 
-	// 이전 공격 모션이 아직 끝나지 않았다면 공격 불가
+	// 이미 공격 중이거나 연사중이면 공격 불가
 	if (bIsAttacking || bIsAutoFiring)
 	{
 		return;
@@ -227,8 +230,22 @@ void APlayerCharacter::StartAttack()
 		return;
 	}
 
-	// 무기가 없다면 공격 불가
-	if (!CurrentWeapon)
+	// 무기또는 공격 몽타주 없다면 공격 불가
+	if (!CurrentWeapon || !AttackMontage)
+	{
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance 가져오기
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	// 단발 몽타주 재생중이면 재시작 금지
+	if (AnimInstance->Montage_IsPlaying(AttackMontage))
 	{
 		return;
 	}
@@ -239,9 +256,31 @@ void APlayerCharacter::StartAttack()
 		return;
 	}
 
-	// 공격 상태 시작
+	// 단발 공격 몽타주 재생
+	const float MontageDuration = PlayAnimMontage(AttackMontage);
+
+	// 실패시 공격하지 않음
+	if (MontageDuration <= 0.0f)
+	{
+		return;
+	}
+
+	// 단발 공격 상태 시작
 	bIsAttacking = true;
 	bIsAutoFiring = false;
+
+	// 몽타주가 정상종료될때 호출 함수
+	FOnMontageEnded EndDelegate;
+
+	EndDelegate.BindUObject(
+		this,
+		&APlayerCharacter::OnAttackMontageEnded
+	);
+
+	AnimInstance->Montage_SetEndDelegate(
+		EndDelegate,
+		AttackMontage
+	);
 
 	// 공격 중에는 카메라가 보는 방향으로 캐릭터 고정
 	bUseControllerRotationYaw = true;
@@ -250,30 +289,6 @@ void APlayerCharacter::StartAttack()
 	{
 		MovementComponent->bOrientRotationToMovement = false;
 		MovementComponent->bUseControllerDesiredRotation = false;
-	}
-
-	// 공격 몽타주 재생
-	if (AttackMontage)
-	{
-		float MontageDuration = PlayAnimMontage(AttackMontage);
-		
-		if (MontageDuration > 0.0f)
-		{
-			if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-			{
-				FOnMontageEnded EndDelegate;
-
-				EndDelegate.BindUObject(
-					this,
-					&APlayerCharacter::OnAttackMontageEnded
-				);
-
-				AnimInstance->Montage_SetEndDelegate(
-					EndDelegate,
-					AttackMontage
-				);
-			}
-		}
 	}
 
 	// 단발 쿨타임
@@ -376,65 +391,64 @@ void APlayerCharacter::StopAttack()
 	}
 }
 
-	void APlayerCharacter::TryInteract()
+void APlayerCharacter::TryInteract()
+{
+	// 상호작용 탐색 거리
+	const float InteractionDistance = 500.0f;
+
+	// 상호작용 탐색 범위
+	const float InteractionRadius = 120.0f;
+
+	// 플레이어 위치부터 시작
+	FVector Start = GetActorLocation();
+
+	// 플레이어가 바라보는 방향으로 500만큼 떨어진 위치
+	FVector End =
+		Start + GetActorForwardVector() * InteractionDistance;
+
+	// Sweep 결과를 저장할 변수
+	FHitResult HitResult;
+
+	// 충돌 검사 조건
+	FCollisionQueryParams Params;
+
+	// 자기 자신은 검사 대상에서 제외
+	Params.AddIgnoredActor(this);
+
+	// Visibility 채널에 충돌하는 Actor 탐색
+	bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(InteractionRadius),
+		Params
+	);
+
+
+	// 무언가 감지됐을 때만 실행
+	if (bHit)
 	{
-		//플레이어 위치에서 정면 300거리까지 상호작용 탐색
-		FVector Start = GetActorLocation();
-		FVector End = Start + GetActorForwardVector() * 300.0f;
+		// 감지된 Actor 가져오기
+		AActor* HitActor = HitResult.GetActor();
 
-		//Line Trace 결과 저장
-		FHitResult HitResult;
-
-		//조건 설정
-		FCollisionQueryParams Params;
-
-		//자기 자신에게 충돌하지 않도록
-		Params.AddIgnoredActor(this);
-
-		// 반지름 100의 구를 Start ~ End까지 이동시켜 충돌한 Actor 탐색
-		bool bHit = GetWorld()->SweepSingleByChannel(
-			HitResult,
-			Start,
-			End,
-			FQuat::Identity,
-			ECC_Visibility,
-			FCollisionShape::MakeSphere(100.0f),
-			Params
-		);
-
-		// 테스트용 상호작용 범위 확인
-		DrawDebugSphere(
-			GetWorld(),
-			Start,
-			100.0f,
-			16,
-			FColor::Red,
-			false,
-			2.0f
-		);
-
-
-		// 감지했다면
-		if (bHit)
+		// 해당 Actor가 존재하면서
+		// IInteractable 인터페이스를 구현했는지 확인
+		if (HitActor && HitActor->Implements<UInteractable>())
 		{
-			//Actor 가져오기
-			AActor* HitActor = HitResult.GetActor();
+			IInteractable* Interactable =
+				Cast<IInteractable>(HitActor);
 
-			//Actor가 존재하고 IInteractable이 있다면
-			if (HitActor && HitActor->Implements<UInteractable>())
+			if (Interactable)
 			{
-				//캐스팅
-				IInteractable* Interactable = Cast<IInteractable>(HitActor);
-
-				//성공했다면 상호작용
-				if (Interactable)
-				{
-					//현재 Player
-					Interactable->Interact(this);
-				}
+				// 플레이어 자신을 전달하면서 상호작용 실행
+				Interactable->Interact(this);
 			}
 		}
 	}
+}
+
 //게터 현재 체력
 float APlayerCharacter::GetCurrentHP()const
 {
@@ -583,11 +597,14 @@ void APlayerCharacter::ApplyControlMode(EPlayControlMode NewControlMode)
 
 		Camera->SetFieldOfView(90.0f);
 
-		// 카메라를 돌려도 캐릭터가 바로 따라 돌지 않음
-		bUseControllerRotationYaw = false;
+		// 카메라를 돌려도 캐릭터가 바로 따라 돌지 않음 // 카메라가 보는 좌우 방향으로 캐릭터 몸도 회전
+		bUseControllerRotationYaw = true; //false
 
 		// 이동 방향으로 몸 회전
-		MovementComponent->bOrientRotationToMovement = true;
+		// A / D 입력 시 캐릭터가 옆걸음하게 됨
+		MovementComponent->bOrientRotationToMovement = false; //true
+
+		// Controller Desired Rotation은 사용하지 않음
 		MovementComponent->bUseControllerDesiredRotation = false;
 
 		// 1인칭에서 숨겼던 Mesh 다시 표시
@@ -849,7 +866,7 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 			0.0f,
 			MaxHP
 		);
-
+		OnHealthChanged.Broadcast(CurrentHP, MaxHP);
 		// 사용에 성공했으므로 인벤토리에서 하트 태엽 1개 제거
 		Inventory->RemoveItems(ItemKey, 1);
 
@@ -863,7 +880,153 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 
 		return true;
 	}
+	case EItemUseType::StarCandy:
+	{
+		// 공격력 30% 증가
+		AttackDamageMultiplier = 1.3f;
+
+		// 기존 타이머가 있다면 초기화
+		GetWorldTimerManager().ClearTimer(StarCandyTimerHandle);
+
+		// 20초 후 공격력 원상복구
+		GetWorldTimerManager().SetTimer(
+			StarCandyTimerHandle,
+			[this]()
+			{
+				AttackDamageMultiplier = 1.0f;
+
+				UE_LOG(LogTemp, Warning, TEXT("StarCandy Buff End"));
+			},
+			20.0f,
+			false
+		);
+
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("StarCandy Used - Attack x1.3"));
+
+		return true;
+	}
+
+	case EItemUseType::GearShoes:
+	{
+		UCharacterMovementComponent* Movement = GetCharacterMovement();
+
+		if (!Movement)
+		{
+			return false;
+		}
+
+		// 이미 신발 버프가 적용 중이 아니라면 원래 속도 저장
+		if (!GetWorldTimerManager().IsTimerActive(GearShoesTimerHandle))
+		{
+			OriginalWalkSpeed = Movement->MaxWalkSpeed;
+		}
+
+		// 원래 이동속도의 125%
+		Movement->MaxWalkSpeed = OriginalWalkSpeed * 1.25f;
+
+		// 다시 사용하면 기존 타이머 초기화
+		GetWorldTimerManager().ClearTimer(GearShoesTimerHandle);
+
+		// 15초 후 원래 속도로 복구
+		GetWorldTimerManager().SetTimer(
+			GearShoesTimerHandle,
+			[this]()
+			{
+				if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+				{
+					MovementComp->MaxWalkSpeed = OriginalWalkSpeed;
+
+					UE_LOG(
+						LogTemp,
+						Warning,
+						TEXT("GearShoes Buff End - Speed: %.1f"),
+						OriginalWalkSpeed
+					);
+				}
+			},
+			15.0f,
+			false
+		);
+
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("GearShoes Used - Speed: %.1f"),
+			Movement->MaxWalkSpeed
+		);
+
+		return true;
+	}
 	default:
 		return false;
+	}
+}
+
+void APlayerCharacter::Die()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	bIsDead = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("Player Dead"));
+
+	// 플레이어 이동 정지
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	// 플레이어 입력 비활성화
+	if (APlayerController* PlayerController =
+		Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PlayerController);
+	}
+	OnPlayerDied.Broadcast();
+}
+
+float APlayerCharacter::GetAttackDamageMultiplier() const
+{
+	return AttackDamageMultiplier;
+}
+
+
+void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
+{
+	// 이미 죽은 상태면 추가 데미지 무시
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 체력 감소
+	CurrentHP = FMath::Clamp(
+		CurrentHP - DamageAmount,
+		0.0f,
+		MaxHP
+	);
+	// UI에게 HP가 변경됐다고 알림
+	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Player Hit! Damage: %.1f / HP: %.1f / %.1f"),
+		DamageAmount,
+		CurrentHP,
+		MaxHP
+	);
+
+	// 사망 체크
+	if (CurrentHP <= 0.0f)
+	{
+		Die();
 	}
 }

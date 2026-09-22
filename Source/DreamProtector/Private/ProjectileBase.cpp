@@ -1,17 +1,30 @@
-﻿#include "ProjectileBase.h"
+#include "ProjectileBase.h"
+#include "PlayerCharacter.h"
+#include "BaseMonster.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 #include "BaseMonster.h"
 #include "BossMonster.h"
 #include "Engine/DamageEvents.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundAttenuation.h"
 
 AProjectileBase::AProjectileBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// 발사체 충돌 감지 Collision 생성
 	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
 	SetRootComponent(SphereCollision);
 
+	SphereCollision->OnComponentHit.AddDynamic(
+		this,
+		&AProjectileBase::OnHit
+	);
+
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	StaticMeshComp->SetupAttachment(SphereCollision);
+
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	//처음 발사 속도
@@ -67,12 +80,29 @@ void AProjectileBase::OnOverlapBegin(
 		return;
 	}
 
+	//충돌한 Actor가 Monster라면 데미지 처리
 	if (ABaseMonster* Monster = Cast<ABaseMonster>(OtherActor))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Monster Hit: %s"), *Monster->GetName());
 
-		Monster->TakeDamage(Damage);
+		float FinalDamage = Damage;
+
+		// 이 투사체를 발사한 플레이어 찾기
+		if (APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwner()))
+		{
+			FinalDamage *= Player->GetAttackDamageMultiplier();
+		}
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("Projectile Damage: %.1f"),
+			FinalDamage
+		);
+
+		Monster->TakeDamage(FinalDamage);
 		
+		//피격 후 발사체를 오브젝트 풀로 반환
 		DeactivateProjectile();
 
 		return;
@@ -83,8 +113,10 @@ void AProjectileBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	//비활성화 T사체는 회전 안함
 	if (!IsHidden())
 	{
+		//비행중 발사체 회전 적용
 		StaticMeshComp->AddLocalRotation(
 			FRotator(350.0f, 150.0f, 90.0f) * DeltaTime
 		);
@@ -96,14 +128,17 @@ void AProjectileBase::ActivateProjectile(
 	const FRotator& SpawnRotation
 )
 {
+	//발사체를 발사 위치로 이동
 	SetActorLocationAndRotation(
 		SpawnLocation,
 		SpawnRotation
 	);
 
+	//풀에 비활성화되어있던 발사체를 다시 보이게 하고 충돌 활성화
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
 
+	//Projectile Movement 활성화 및 발사 속도 적용
 	if (ProjectileMovement)
 	{
 		ProjectileMovement->Activate(true);
@@ -113,7 +148,8 @@ void AProjectileBase::ActivateProjectile(
 			ProjectileMovement->InitialSpeed;
 	}
 
-	// 빗나간 총알도 3초 후 풀로 반환
+	// 아무것도 맞지 않은 발사체도
+	// 3초 후 자동으로 오브젝트 풀에 반환
 	GetWorldTimerManager().SetTimer(
 		DeactivateTimerHandle,
 		this,
@@ -125,14 +161,64 @@ void AProjectileBase::ActivateProjectile(
 
 void AProjectileBase::DeactivateProjectile()
 {
+	// 자동 반환 타이머 제거
 	GetWorldTimerManager().ClearTimer(DeactivateTimerHandle);
 
+	// 발사체 숨기기 및 충돌 비활성화
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 
+	// 이동 중지 후 Projectile Movement 비활성화
 	if (ProjectileMovement)
 	{
 		ProjectileMovement->StopMovementImmediately();
 		ProjectileMovement->Deactivate();
 	}
+}
+
+void AProjectileBase::OnHit(
+	UPrimitiveComponent* HitComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse,
+	const FHitResult& Hit
+)
+{
+	if (!OtherActor || OtherActor == this || OtherActor == GetOwner())
+	{
+		return;
+	}
+
+
+	// 충돌 위치에 Niagara VFX 생성
+	if (ImpactVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			ImpactVFX,
+			Hit.ImpactPoint,
+			Hit.ImpactNormal.Rotation()
+		);
+	}
+	// 실제 충돌 지점에서 Impact Sound 재생
+	// ImpactAttenuation을 통해 거리에 따라 소리 크기가 감소
+	if (ImpactSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			ImpactSound,
+			Hit.ImpactPoint,
+			1.0f,
+			1.0f,
+			0.0f,
+			ImpactAttenuation
+		);
+	}
+
+	// 충돌 처리 후 발사체를 오브젝트 풀로 반환
+	DeactivateProjectile();
+}
+
+void AProjectileBase::PlayImpactEffect(const FVector& Location, const FVector& Normal)
+{
 }
