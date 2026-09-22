@@ -3,17 +3,48 @@
 #include "BaseMonster.h"
 #include "Elevator.h"
 #include "ElevatorKey.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 
 AWaveManager2::AWaveManager2()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    BGMComponent =
+        CreateDefaultSubobject<UAudioComponent>(TEXT("BGMComponent"));
+
+    BGMComponent->SetAutoActivate(false);
+    BGMComponent->bAllowSpatialization = false;
+    BGMComponent->SetUISound(false);
+    BGMComponent->bAutoDestroy = false;
+    BGMComponent->SetVolumeMultiplier(0.5f);
 }
 
 void AWaveManager2::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Stage 2 ½ÃÀÛ ÈÄ 135ÃÊ¿¡ 2-2 ÀüÅõ ½ÃÀÛ
+    ChangeBGM(TutorialBGM);
+
+    // ì‹œì‘ í›„ 30ì´ˆ: 2-1 ì „íˆ¬ ì‹œì‘
+    GetWorldTimerManager().SetTimer(
+        Phase1TimerHandle,
+        this,
+        &AWaveManager2::StartPhase1,
+        30.0f,
+        false
+    );
+
+    // ì‹œì‘ í›„ 90ì´ˆ: ì¤€ë¹„ì‹œê°„ ì‹œì‘
+    GetWorldTimerManager().SetTimer(
+        PreparationTimerHandle,
+        this,
+        &AWaveManager2::StartPreparation,
+        90.0f,
+        false
+    );
+
+    // ì‹œì‘ í›„ 135ì´ˆ: 2-2 ì „íˆ¬ ì‹œì‘
     GetWorldTimerManager().SetTimer(
         Phase2TimerHandle,
         this,
@@ -22,7 +53,16 @@ void AWaveManager2::BeginPlay()
         false
     );
 
-    // Stage 2 ½ÃÀÛ ÈÄ 180ÃÊ¿¡ ¿¤¸®º£ÀÌÅÍ »ı¼º ÀÌº¥Æ®
+    // 225ì´ˆ: ë‘ ë²ˆì§¸ ì¤€ë¹„ì‹œê°„ ì‹œì‘
+    GetWorldTimerManager().SetTimer(
+        FinalPreparationTimerHandle,
+        this,
+        &AWaveManager2::StartPreparation,
+        225.0f,
+        false
+    );
+
+    // 270ì´ˆ: ì¤€ë¹„ì‹œê°„ ì¢…ë£Œ í›„ ì—˜ë¦¬ë² ì´í„° ìƒì„±
     GetWorldTimerManager().SetTimer(
         ElevatorTimerHandle,
         this,
@@ -31,7 +71,7 @@ void AWaveManager2::BeginPlay()
         false
     );
 
-    // Stage 2 ½ÃÀÛ ÈÄ 90ÃÊ¿¡ ´ë¹® °³¹æ
+    // Stage 2 ì‹œì‘ í›„ 90ì´ˆì— ëŒ€ë¬¸ ê°œë°©
     GetWorldTimerManager().SetTimer(
         GateTimerHandle,
         this,
@@ -46,9 +86,11 @@ void AWaveManager2::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
-// 2-1Àº ·¹º§¿¡ ¹Ì¸® ¹èÄ¡µÈ ¸ó½ºÅÍ¸¦ Ã³Ä¡ÇÏ´Â ±¸°£
+// 2-1ì€ ë ˆë²¨ì— ë¯¸ë¦¬ ë°°ì¹˜ëœ ëª¬ìŠ¤í„°ë¥¼ ì²˜ì¹˜í•˜ëŠ” êµ¬ê°„
 void AWaveManager2::StartPhase1()
 {
+    ChangeBGM(BattleBGM);
+
     UE_LOG(
         LogTemp,
         Warning,
@@ -56,19 +98,32 @@ void AWaveManager2::StartPhase1()
     );
 }
 
-// 2-2 ÀüÅõ ½ÃÀÛ
+void AWaveManager2::StartPreparation()
+{
+    ChangeBGM(PreparationBGM);
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("===== STAGE 2 - PREPARATION START =====")
+    );
+}
+
+// 2-2 ì „íˆ¬ ì‹œì‘
 void AWaveManager2::StartPhase2()
 {
+    ChangeBGM(BattleBGM);
+
     UE_LOG(
         LogTemp,
         Warning,
         TEXT("===== STAGE 2 - 2-2 COMBAT START =====")
     );
 
-    // 1Â÷ ½ºÆù
+    // 1ì°¨ ìŠ¤í°
     SpawnPhase2Monsters();
 
-    // 20ÃÊ¸¶´Ù ´ÙÀ½ ½ºÆù ½ÇÇà
+    // 20ì´ˆë§ˆë‹¤ ë‹¤ìŒ ìŠ¤í° ì‹¤í–‰
     GetWorldTimerManager().SetTimer(
         Phase2SpawnTimerHandle,
         this,
@@ -80,7 +135,7 @@ void AWaveManager2::StartPhase2()
 
 void AWaveManager2::SpawnElevator()
 {
-    // ÀÌ¹Ì ¿¤¸®º£ÀÌÅÍ°¡ »ı¼ºµÆ´Ù¸é ´Ù½Ã »ı¼ºÇÏÁö ¾ÊÀ½
+    // ì´ë¯¸ ì—˜ë¦¬ë² ì´í„°ê°€ ìƒì„±ëë‹¤ë©´ ë‹¤ì‹œ ìƒì„±í•˜ì§€ ì•ŠìŒ
     if (bElevatorSpawned)
     {
         return;
@@ -96,7 +151,7 @@ void AWaveManager2::SpawnElevator()
         return;
     }
 
-    // ÁöÁ¤ÇÑ À§Ä¡¿¡ ¿¤¸®º£ÀÌÅÍ »ı¼º
+    // ì§€ì •í•œ ìœ„ì¹˜ì— ì—˜ë¦¬ë² ì´í„° ìƒì„±
     AElevator* SpawnedElevator =
         GetWorld()->SpawnActor<AElevator>(
             ElevatorClass,
@@ -125,7 +180,7 @@ void AWaveManager2::SpawnPhase2Monsters()
 
     for (const FPhase2SpawnData& SpawnData : Phase2SpawnData)
     {
-        // ÇöÀç ½ºÆù Â÷¼ö¿¡ ÇØ´çÇÏ´Â µ¥ÀÌÅÍ¸¸ Ã³¸®
+        // í˜„ì¬ ìŠ¤í° ì°¨ìˆ˜ì— í•´ë‹¹í•˜ëŠ” ë°ì´í„°ë§Œ ì²˜ë¦¬
         if (SpawnData.SpawnIndex != CurrentPhase2SpawnIndex)
         {
             continue;
@@ -150,10 +205,10 @@ void AWaveManager2::SpawnPhase2Monsters()
 
             if (SpawnedMonster)
             {
-                // 2-2¿¡¼­ ½ºÆùµÈ ¸ó½ºÅÍ¶ó°í Ç¥½Ã
+                // 2-2ì—ì„œ ìŠ¤í°ëœ ëª¬ìŠ¤í„°ë¼ê³  í‘œì‹œ
                 SpawnedMonster->SetIsPhase2Monster(true);
 
-                // ½ÇÁ¦ ½ºÆù ¼º°øÇÑ ¸ó½ºÅÍ¸¸ Ä«¿îÆ®
+                // ì‹¤ì œ ìŠ¤í° ì„±ê³µí•œ ëª¬ìŠ¤í„°ë§Œ ì¹´ìš´íŠ¸
                 ++Phase2TotalMonsterCount;
                 ++Phase2RemainingMonsterCount;
 
@@ -170,10 +225,10 @@ void AWaveManager2::SpawnPhase2Monsters()
 
 void AWaveManager2::SpawnNextPhase2Wave()
 {
-    // ´ÙÀ½ ½ºÆù Â÷¼ö·Î ÀÌµ¿
+    // ë‹¤ìŒ ìŠ¤í° ì°¨ìˆ˜ë¡œ ì´ë™
     ++CurrentPhase2SpawnIndex;
 
-    // 3Â÷ ½ºÆù±îÁö ¿Ï·áÇßÀ¸¸é Á¾·á
+    // 3ì°¨ ìŠ¤í°ê¹Œì§€ ì™„ë£Œí–ˆìœ¼ë©´ ì¢…ë£Œ
     if (CurrentPhase2SpawnIndex >= 3)
     {
         GetWorldTimerManager().ClearTimer(Phase2SpawnTimerHandle);
@@ -187,17 +242,17 @@ void AWaveManager2::SpawnNextPhase2Wave()
         return;
     }
 
-    // ÇöÀç Â÷¼öÀÇ ¸ó½ºÅÍ ½ºÆù
+    // í˜„ì¬ ì°¨ìˆ˜ì˜ ëª¬ìŠ¤í„° ìŠ¤í°
     SpawnPhase2Monsters();
 }
 
 void AWaveManager2::OnPhase2MonsterKilled()
 {
-    // 2-2¿¡¼­ ¾ÆÁ÷ »ì¾ÆÀÖ´Â ¸ó½ºÅÍ ¼ö °¨¼Ò
+    // 2-2ì—ì„œ ì•„ì§ ì‚´ì•„ìˆëŠ” ëª¬ìŠ¤í„° ìˆ˜ ê°ì†Œ
     --Phase2RemainingMonsterCount;
 
-    // 3Â÷ ½ºÆù(Index 2)±îÁö ½ÃÀÛµÈ »óÅÂÀÌ°í
-    // ¸ğµç 2-2 ¸ó½ºÅÍ°¡ Á×¾úÀ» ¶§¸¸ 2-2 Á¾·á
+    // 3ì°¨ ìŠ¤í°(Index 2)ê¹Œì§€ ì‹œì‘ëœ ìƒíƒœì´ê³ 
+    // ëª¨ë“  2-2 ëª¬ìŠ¤í„°ê°€ ì£½ì—ˆì„ ë•Œë§Œ 2-2 ì¢…ë£Œ
     if (Phase2RemainingMonsterCount <= 0 &&
         CurrentPhase2SpawnIndex >= 2)
     {
@@ -209,20 +264,20 @@ void AWaveManager2::OnPhase2MonsterKilled()
             TEXT("===== STAGE 2 - 2-2 COMBAT COMPLETE =====")
         );
 
-        // 2-2 ÀüÃ¼ Å¬¸®¾î ÈÄ ¿¤¸®º£ÀÌÅÍ Å° »ı¼º
+        // 2-2 ì „ì²´ í´ë¦¬ì–´ í›„ ì—˜ë¦¬ë² ì´í„° í‚¤ ìƒì„±
         SpawnElevatorKey();
     }
 }
 
 void AWaveManager2::SpawnElevatorKey()
 {
-    // ÀÌ¹Ì Å°°¡ »ı¼ºµÆ´Ù¸é ´Ù½Ã »ı¼ºÇÏÁö ¾ÊÀ½
+    // ì´ë¯¸ í‚¤ê°€ ìƒì„±ëë‹¤ë©´ ë‹¤ì‹œ ìƒì„±í•˜ì§€ ì•ŠìŒ
     if (bElevatorKeySpawned)
     {
         return;
     }
 
-    // Å° Å¬·¡½º°¡ ¼³Á¤µÇÁö ¾Ê¾Ò´Ù¸é »ı¼ºÇÏÁö ¾ÊÀ½
+    // í‚¤ í´ë˜ìŠ¤ê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ë‹¤ë©´ ìƒì„±í•˜ì§€ ì•ŠìŒ
     if (!ElevatorKeyClass)
     {
         UE_LOG(
@@ -233,7 +288,7 @@ void AWaveManager2::SpawnElevatorKey()
         return;
     }
 
-    // ÁöÁ¤ÇÑ À§Ä¡¿¡ ¿¤¸®º£ÀÌÅÍ Å° »ı¼º
+    // ì§€ì •í•œ ìœ„ì¹˜ì— ì—˜ë¦¬ë² ì´í„° í‚¤ ìƒì„±
     AElevatorKey* SpawnedKey =
         GetWorld()->SpawnActor<AElevatorKey>(
             ElevatorKeyClass,
@@ -260,7 +315,7 @@ void AWaveManager2::OpenGate()
         return;
     }
 
-    // BP_LeftDoorÀÇ OpenGate ÇÔ¼ö È£Ãâ
+    // BP_LeftDoorì˜ OpenGate í•¨ìˆ˜ í˜¸ì¶œ
     GateActor->CallFunctionByNameWithArguments(
         TEXT("OpenGate"),
         *GLog,
@@ -278,4 +333,19 @@ void AWaveManager2::OpenGate()
         );
     }
     UE_LOG(LogTemp, Warning, TEXT("===== STAGE 2 - GATE OPEN ====="));
+}
+void AWaveManager2::ChangeBGM(USoundBase* NewMusic)
+{
+    if (!BGMComponent)
+    {
+        return;
+    }
+
+    BGMComponent->Stop();
+    BGMComponent->SetSound(NewMusic);
+
+    if (NewMusic)
+    {
+        BGMComponent->Play();
+    }
 }

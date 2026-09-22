@@ -8,25 +8,27 @@ class ASpawnVolume;
 class ABaseMonster;
 class AElevator;
 class AElevatorKey;
+class UAudioComponent;
+class USoundBase;
 
 USTRUCT(BlueprintType)
 struct FPhase2SpawnData
 {
 	GENERATED_BODY()
 
-	// ¾î¶² SpawnVolume¿¡¼­ ½ºÆùÇÒÁö
+	// ì–´ë–¤ SpawnVolumeì—ì„œ ìŠ¤í°í• ì§€
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
 	TObjectPtr<ASpawnVolume> SpawnVolume;
 
-	// ½ºÆùÇÒ ¸ó½ºÅÍ Á¾·ù
+	// ìŠ¤í°í•  ëª¬ìŠ¤í„° ì¢…ë¥˜
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
 	TSubclassOf<ABaseMonster> MonsterClass;
 
-	// ½ºÆùÇÒ ¸ó½ºÅÍ ¼ö
+	// ìŠ¤í°í•  ëª¬ìŠ¤í„° ìˆ˜
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
 	int32 SpawnCount = 0;
 
-	// ¸î ¹øÂ° ½ºÆù¿¡¼­ »ı¼ºÇÒÁö
+	// ëª‡ ë²ˆì§¸ ìŠ¤í°ì—ì„œ ìƒì„±í• ì§€
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
 	int32 SpawnIndex = 0;
 };
@@ -38,17 +40,17 @@ class DREAMPROTECTOR_API AWaveManager2 : public AActor
 
 public:
 	AWaveManager2();
-	// 2-2 ¸ó½ºÅÍ°¡ Á×¾úÀ» ¶§ È£Ãâ
+	// 2-2 ëª¬ìŠ¤í„°ê°€ ì£½ì—ˆì„ ë•Œ í˜¸ì¶œ
 	void OnPhase2MonsterKilled();
 
 protected:
 	virtual void BeginPlay() override;
 
-	// Stage 2 ½ÃÀÛ ÈÄ °æ°ú ½Ã°£(ÃÊ)
+	// Stage 2 ì‹œì‘ í›„ ê²½ê³¼ ì‹œê°„(ì´ˆ)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
 	float StageElapsedTime = 0.0f;
 
-	// °¢ ½Ã°£ ÀÌº¥Æ®°¡ ½ÇÇàµÆ´ÂÁö È®ÀÎ
+	// ê° ì‹œê°„ ì´ë²¤íŠ¸ê°€ ì‹¤í–‰ëëŠ”ì§€ í™•ì¸
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
 	bool bPhase1Started = false;
 
@@ -58,77 +60,96 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
 	bool bElevatorSpawned = false;
 
-	// Stage 2¿¡¼­ »ç¿ëÇÒ ½ºÆùº¼·ı ¸ñ·Ï
+	// Stage 2ì—ì„œ ì‚¬ìš©í•  ìŠ¤í°ë³¼ë¥¨ ëª©ë¡
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
 	TArray<TObjectPtr<ASpawnVolume>> SpawnVolumes;
 
-	// 2-2 ¸ó½ºÅÍ ½ºÆù ¼³Á¤
+	// 2-2 ëª¬ìŠ¤í„° ìŠ¤í° ì„¤ì •
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
 	TArray<FPhase2SpawnData> Phase2SpawnData;
 
-	// 180ÃÊ¿¡ »ı¼ºÇÒ ¿¤¸®º£ÀÌÅÍ
+	// Stage2 ì‹œì‘ í›„ 225ì´ˆì— ìƒì„±í•  ì—˜ë¦¬ë² ì´í„°
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
 	TSubclassOf<AElevator> ElevatorClass;
 
-	// ¿¤¸®º£ÀÌÅÍ°¡ »ı¼ºµÉ À§Ä¡
+	// ì—˜ë¦¬ë² ì´í„°ê°€ ìƒì„±ë  ìœ„ì¹˜
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
 	FTransform ElevatorSpawnTransform;
 
-	// ÇöÀç 2-2 ½ºÆù Â÷¼ö
+	// í˜„ì¬ 2-2 ìŠ¤í° ì°¨ìˆ˜
 	int32 CurrentPhase2SpawnIndex = 0;
 
 	void StartPhase1();
 	void StartPhase2();
+	void StartPreparation();
 
-	// Stage 2 ½Ã°£ ÀÌº¥Æ®¸¦ °ü¸®ÇÏ´Â Å¸ÀÌ¸Ó
+	// Stage 2 ì‹œê°„ ì´ë²¤íŠ¸ë¥¼ ê´€ë¦¬í•˜ëŠ” íƒ€ì´ë¨¸
 	FTimerHandle Phase1TimerHandle;
 	FTimerHandle Phase2TimerHandle;
 	FTimerHandle ElevatorTimerHandle;
 	FTimerHandle GateTimerHandle;
 
-	// 2-2 ¸ó½ºÅÍ ½ºÆù
+	// 2-2 ëª¬ìŠ¤í„° ìŠ¤í°
 	void SpawnPhase2Monsters();
 
-	// 2-2 ´ÙÀ½ ½ºÆù Ã³¸®
+	// 2-2 ë‹¤ìŒ ìŠ¤í° ì²˜ë¦¬
 	void SpawnNextPhase2Wave();
 
-	// 2-2 ½ºÆù °£°İÀ» °ü¸®ÇÏ´Â Å¸ÀÌ¸Ó
+	// 2-2 ìŠ¤í° ê°„ê²©ì„ ê´€ë¦¬í•˜ëŠ” íƒ€ì´ë¨¸
 	FTimerHandle Phase2SpawnTimerHandle;
 
-	// ¿¤¸®º£ÀÌÅÍ »ı¼º ½ÃÁ¡
+	// ì—˜ë¦¬ë² ì´í„° ìƒì„± ì‹œì 
 	void SpawnElevator();
 
-	// 2-2¿¡¼­ ½ºÆùÇÑ ¸ó½ºÅÍ ¼ö
+	// 2-2ì—ì„œ ìŠ¤í°í•œ ëª¬ìŠ¤í„° ìˆ˜
 	int32 Phase2TotalMonsterCount = 0;
 
-	// 2-2¿¡¼­ ¾ÆÁ÷ »ì¾ÆÀÖ´Â ¸ó½ºÅÍ ¼ö
+	// 2-2ì—ì„œ ì•„ì§ ì‚´ì•„ìˆëŠ” ëª¬ìŠ¤í„° ìˆ˜
 	int32 Phase2RemainingMonsterCount = 0;
 
-	// 2-2 Å¬¸®¾î ÈÄ »ı¼ºÇÒ ¿¤¸®º£ÀÌÅÍ Å°
+	// 2-2 í´ë¦¬ì–´ í›„ ìƒì„±í•  ì—˜ë¦¬ë² ì´í„° í‚¤
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator Key")
 	TSubclassOf<AElevatorKey> ElevatorKeyClass;
 
-	// ¿¤¸®º£ÀÌÅÍ Å°°¡ »ı¼ºµÉ À§Ä¡
+	// ì—˜ë¦¬ë² ì´í„° í‚¤ê°€ ìƒì„±ë  ìœ„ì¹˜
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator Key")
 	FTransform ElevatorKeySpawnTransform;
 
-	// ¿¤¸®º£ÀÌÅÍ Å°°¡ ÀÌ¹Ì »ı¼ºµÆ´ÂÁö
+	// ì—˜ë¦¬ë² ì´í„° í‚¤ê°€ ì´ë¯¸ ìƒì„±ëëŠ”ì§€
 	bool bElevatorKeySpawned = false;
 
-	// 2-2 Å¬¸®¾î ÈÄ ¿¤¸®º£ÀÌÅÍ Å° »ı¼º
+	// 2-2 í´ë¦¬ì–´ í›„ ì—˜ë¦¬ë² ì´í„° í‚¤ ìƒì„±
 	void SpawnElevatorKey();
 
-	// 90ÃÊ ÈÄ ¿­¸± ´ë¹® ºí·çÇÁ¸°Æ®
+	// 90ì´ˆ í›„ ì—´ë¦´ ëŒ€ë¬¸ ë¸”ë£¨í”„ë¦°íŠ¸
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
 	TObjectPtr<AActor> GateActor;
 
-	// ¿À¸¥ÂÊ ´ë¹®
+	// ì˜¤ë¥¸ìª½ ëŒ€ë¬¸
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
 	TObjectPtr<AActor> GateActorRight;
 
-	// 90ÃÊ ÈÄ ´ë¹® °³¹æ
+	// 90ì´ˆ í›„ ëŒ€ë¬¸ ê°œë°©
 	void OpenGate();
 
+	// BGMì„ ì¬ìƒí•˜ëŠ” ì»´í¬ë„ŒíŠ¸
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<UAudioComponent> BGMComponent;
+
+	// íŠœí† ë¦¬ì–¼ ìŒì•…
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> TutorialBGM;
+
+	// ì›¨ì´ë¸Œ ì „íˆ¬ ìŒì•…
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> BattleBGM;
+
+	// ì¤€ë¹„ì‹œê°„ ìŒì•…
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> PreparationBGM;
+
+	// í˜„ì¬ ìŒì•…ì„ ë©ˆì¶”ê³  ìƒˆ ìŒì•…ì„ ì¬ìƒ
+	void ChangeBGM(USoundBase* NewMusic);
 public:
 	virtual void Tick(float DeltaTime) override;
 };
