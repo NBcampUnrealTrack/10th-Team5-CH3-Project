@@ -1,6 +1,7 @@
 ﻿#include "BossMonster.h"
 #include "AIController.h"
 #include "BrainComponent.h"
+#include "BossAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -47,7 +48,7 @@ void ABossMonster::BeginPlay()
 	UpdatePhaseInBlackboard();
 
 	// [테스트용] 트리거 볼륨 완성 전까지, 3초 뒤 자동으로 등장 씬 실행 - 나중에 이 두 줄 삭제
-	GetWorldTimerManager().SetTimer(TestIntroTimerHandle, this, &ABossMonster::StartIntroSequence, 3.f, false);
+	// GetWorldTimerManager().SetTimer(TestIntroTimerHandle, this, &ABossMonster::StartIntroSequence, 3.f, false);
 }
 
 FVector ABossMonster::GetAnchorLocation() const
@@ -297,14 +298,14 @@ void ABossMonster::Tick(float DeltaTime)
 			}
 		}
 	}
-
+	// 트리거 넣으려고 통으로 수정했습니다.
 	if (CurrentIntroState == EBossIntroState::Pausing)
 	{
 		// 대기 중엔 위치 고정 (Flying 무브먼트 잔여 관성으로 밀리는 것 방지)
 		SetActorLocation(LungeTargetLocation);
 	}
 
-	else if (CurrentIntroState == EBossIntroState::Rising)
+	if (CurrentIntroState == EBossIntroState::Rising)
 	{
 		// 성장과 상승이 모두 끝나면 등장 완료
 		if (!bIsGrowing)
@@ -312,18 +313,39 @@ void ABossMonster::Tick(float DeltaTime)
 			CurrentIntroState = EBossIntroState::Done;
 			bIntroFinished = true;
 
-			if (AAIController* AIController =
-				Cast<AAIController>(GetController()))
+			if (AAIController* AIController = Cast<AAIController>(GetController()))
 			{
-				if (UBlackboardComponent* BB =
-					AIController->GetBlackboardComponent())
+				if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
 				{
-					BB->SetValueAsBool(TEXT("bIntroFinished"),true);
+					BB->SetValueAsBool(TEXT("bIntroFinished"), true);
+				}
+
+				if (ABossAIController* BossAIController = Cast<ABossAIController>(AIController))
+				{
+					BossAIController->StartBossBattle();
 				}
 			}
 		}
 	}
+	//if (CurrentIntroState == EBossIntroState::Rising)
+	//{
+		// 성장과 상승이 모두 끝나면 등장 완료
+	//	if (!bIsGrowing)
+		//{
+			//CurrentIntroState = EBossIntroState::Done;
+			//bIntroFinished = true;
 
+//			if (AAIController* AIController =
+	//			Cast<AAIController>(GetController()))
+		//	{
+			//	if (UBlackboardComponent* BB =
+				//	AIController->GetBlackboardComponent())
+				//{
+				//	BB->SetValueAsBool(TEXT("bIntroFinished"), true);
+				//}
+			//}
+		//}
+	//}
 	// 등장 씬 종료 후엔 매 프레임 플레이어 쪽으로 회전 (Pausing/Rising과 별개로 항상 체크)
 	if (CurrentIntroState == EBossIntroState::Done)
 	{
