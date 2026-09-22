@@ -393,11 +393,16 @@ void APlayerCharacter::StopAttack()
 
 	void APlayerCharacter::TryInteract()
 	{
-		//플레이어 위치에서 정면 300거리까지 상호작용 탐색
-		FVector Start = GetActorLocation();
-		FVector End = Start + GetActorForwardVector() * 300.0f;
+		// 상호작용 탐색 거리
+		const float InteractionDistance = 500.0f;
 
-		//Line Trace 결과 저장
+		// 상호작용 탐색 범위
+		const float InteractionRadius = 120.0f;
+
+		FVector Start = GetActorLocation();
+		FVector End =
+			Start + GetActorForwardVector() * InteractionDistance;
+
 		FHitResult HitResult;
 
 		//조건 설정
@@ -406,16 +411,17 @@ void APlayerCharacter::StopAttack()
 		//자기 자신에게 충돌하지 않도록
 		Params.AddIgnoredActor(this);
 
-		// 반지름 100의 구를 Start ~ End까지 이동시켜 충돌한 Actor 탐색
+		//테스트
+		/*
 		bool bHit = GetWorld()->SweepSingleByChannel(
-			HitResult,
-			Start,
-			End,
-			FQuat::Identity,
-			ECC_Visibility,
-			FCollisionShape::MakeSphere(100.0f),
-			Params
-		);
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(InteractionRadius),
+		Params
+		);*/
 
 		// 테스트용 상호작용 범위 확인
 		DrawDebugSphere(
