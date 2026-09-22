@@ -27,7 +27,16 @@ void AWaveManager2::BeginPlay()
         ElevatorTimerHandle,
         this,
         &AWaveManager2::SpawnElevator,
-        180.0f,
+        260.0f,
+        false
+    );
+
+    // Stage 2 시작 후 90초에 대문 개방
+    GetWorldTimerManager().SetTimer(
+        GateTimerHandle,
+        this,
+        &AWaveManager2::OpenGate,
+        90.0f,
         false
     );
 }
@@ -241,4 +250,32 @@ void AWaveManager2::SpawnElevatorKey()
             TEXT("===== ELEVATOR KEY SPAWN =====")
         );
     }
+}
+
+void AWaveManager2::OpenGate()
+{
+    if (!GateActor)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GateActor is not set."));
+        return;
+    }
+
+    // BP_LeftDoor의 OpenGate 함수 호출
+    GateActor->CallFunctionByNameWithArguments(
+        TEXT("OpenGate"),
+        *GLog,
+        nullptr,
+        true
+    );
+
+    if (GateActorRight)
+    {
+        GateActorRight->CallFunctionByNameWithArguments(
+            TEXT("OpenGate"),
+            *GLog,
+            nullptr,
+            true
+        );
+    }
+    UE_LOG(LogTemp, Warning, TEXT("===== STAGE 2 - GATE OPEN ====="));
 }

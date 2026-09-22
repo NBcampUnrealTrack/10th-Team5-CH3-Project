@@ -84,6 +84,7 @@ protected:
 	FTimerHandle Phase1TimerHandle;
 	FTimerHandle Phase2TimerHandle;
 	FTimerHandle ElevatorTimerHandle;
+	FTimerHandle GateTimerHandle;
 
 	// 2-2 몬스터 스폰
 	void SpawnPhase2Monsters();
@@ -116,6 +117,17 @@ protected:
 
 	// 2-2 클리어 후 엘리베이터 키 생성
 	void SpawnElevatorKey();
+
+	// 90초 후 열릴 대문 블루프린트
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
+	TObjectPtr<AActor> GateActor;
+
+	// 오른쪽 대문
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
+	TObjectPtr<AActor> GateActorRight;
+
+	// 90초 후 대문 개방
+	void OpenGate();
 
 public:
 	virtual void Tick(float DeltaTime) override;
