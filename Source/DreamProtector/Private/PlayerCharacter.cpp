@@ -855,6 +855,32 @@ bool APlayerCharacter::UseItem(FName ItemKey)
 
 		return true;
 	}
+
+	case EItemUseType::HeartGear:
+	{
+		// 최대 체력의 30%만큼 회복
+		const float HealAmount = MaxHP * 0.3f;
+
+		// MaxHP를 초과하지 않도록 제한
+		CurrentHP = FMath::Clamp(
+			CurrentHP + HealAmount,
+			0.0f,
+			MaxHP
+		);
+
+		// 사용에 성공했으므로 인벤토리에서 하트 태엽 1개 제거
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("HeartGear Used - HP: %.1f / %.1f"),
+			CurrentHP,
+			MaxHP
+		);
+
+		return true;
+	}
 	default:
 		return false;
 	}
