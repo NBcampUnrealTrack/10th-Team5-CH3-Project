@@ -26,61 +26,10 @@ void AWaveManager2::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ChangeBGM(TutorialBGM);
+	ChangeBGM(BattleBGM);
 
-	// 시작 후 30초: 2-1 전투 시작
-	GetWorldTimerManager().SetTimer(
-		Phase1TimerHandle,
-		this,
-		&AWaveManager2::StartPhase1,
-		30.0f,
-		false
-	);
-
-	// 시작 후 90초: 준비시간 시작
-	GetWorldTimerManager().SetTimer(
-		PreparationTimerHandle,
-		this,
-		&AWaveManager2::StartPreparation,
-		90.0f,
-		false
-	);
-
-	// 시작 후 135초: 2-2 전투 시작
-	GetWorldTimerManager().SetTimer(
-		Phase2TimerHandle,
-		this,
-		&AWaveManager2::StartPhase2,
-		135.0f,
-		false
-	);
-
-	// 225초: 두 번째 준비시간 시작
-	GetWorldTimerManager().SetTimer(
-		FinalPreparationTimerHandle,
-		this,
-		&AWaveManager2::StartPreparation,
-		225.0f,
-		false
-	);
-
-	// 260초: 엘리베이터 생성
-	GetWorldTimerManager().SetTimer(
-		ElevatorTimerHandle,
-		this,
-		&AWaveManager2::SpawnElevator,
-		260.0f,
-		false
-	);
-
-	// Stage 2 시작 후 90초에 대문 개방
-	GetWorldTimerManager().SetTimer(
-		GateTimerHandle,
-		this,
-		&AWaveManager2::OpenGate,
-		90.0f,
-		false
-	);
+	// Stage2 시작과 동시에 2-1 전투 시작
+	StartPhase1();
 }
 
 void AWaveManager2::Tick(float DeltaTime)
@@ -91,12 +40,33 @@ void AWaveManager2::Tick(float DeltaTime)
 // 2-1은 레벨에 미리 배치된 몬스터를 처치하는 구간
 void AWaveManager2::StartPhase1()
 {
+	bPhase1Started = true;
+	bPhase2Started = false;
+
 	ChangeBGM(BattleBGM);
+
+
+	TArray<AActor*> Monsters;
+
+	UGameplayStatics::GetAllActorsOfClass(
+		this,
+		ABaseMonster::StaticClass(),
+		Monsters
+	);
+
+	Phase1RemainingMonsterCount = Monsters.Num();
+	Phase1TotalMonsterCount = Phase1RemainingMonsterCount;
+
+	OnMonsterCountChanged.Broadcast(
+		Phase1RemainingMonsterCount,
+		Phase1TotalMonsterCount
+	);
 
 	UE_LOG(
 		LogTemp,
 		Warning,
-		TEXT("===== STAGE 2 - 2-1 COMBAT START =====")
+		TEXT("===== STAGE 2 - 2-1 START / Monsters: %d ====="),
+		Phase1RemainingMonsterCount
 	);
 }
 
@@ -114,6 +84,7 @@ void AWaveManager2::StartPreparation()
 // 2-2 전투 시작
 void AWaveManager2::StartPhase2()
 {
+	bPhase2Started = true;
 	ChangeBGM(BattleBGM);
 
 	UE_LOG(
@@ -122,17 +93,8 @@ void AWaveManager2::StartPhase2()
 		TEXT("===== STAGE 2 - 2-2 COMBAT START =====")
 	);
 
-	// 1차 스폰
+	// 2-2 몬스터를 한 번에 스폰
 	SpawnPhase2Monsters();
-
-	// 20초마다 다음 스폰 실행
-	GetWorldTimerManager().SetTimer(
-		Phase2SpawnTimerHandle,
-		this,
-		&AWaveManager2::SpawnNextPhase2Wave,
-		20.0f,
-		true
-	);
 }
 
 void AWaveManager2::SpawnElevator()
@@ -186,11 +148,7 @@ void AWaveManager2::SpawnPhase2Monsters()
 
 	for (const FPhase2SpawnData& SpawnData : Phase2SpawnData)
 	{
-		// 현재 스폰 차수에 해당하는 데이터만 처리
-		if (SpawnData.SpawnIndex != CurrentPhase2SpawnIndex)
-		{
-			continue;
-		}
+		
 
 		if (!SpawnData.SpawnVolume || !SpawnData.MonsterClass)
 		{
@@ -227,6 +185,10 @@ void AWaveManager2::SpawnPhase2Monsters()
 			}
 		}
 	}
+	OnMonsterCountChanged.Broadcast(
+		Phase2RemainingMonsterCount,
+		Phase2TotalMonsterCount
+	);
 }
 
 void AWaveManager2::SpawnNextPhase2Wave()
@@ -251,27 +213,68 @@ void AWaveManager2::SpawnNextPhase2Wave()
 	// 현재 차수의 몬스터 스폰
 	SpawnPhase2Monsters();
 }
+void AWaveManager2::OnPhase1MonsterKilled()
+{
+	if (Phase1RemainingMonsterCount <= 0)
+	{
+		return;
+	}
 
+	--Phase1RemainingMonsterCount;
+
+	OnMonsterCountChanged.Broadcast(
+		Phase1RemainingMonsterCount,
+		Phase1TotalMonsterCount
+	);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Stage2 2-1 Remaining Monsters: %d"),
+		Phase1RemainingMonsterCount
+	);
+
+	if (Phase1RemainingMonsterCount <= 0)
+	{
+		Phase1RemainingMonsterCount = 0;
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("===== STAGE 2 - 2-1 COMPLETE =====")
+		);
+
+		// 문 개방
+		OpenGate();
+
+		// 바로 2-2 시작
+		StartPhase2();
+	}
+}
 void AWaveManager2::OnPhase2MonsterKilled()
 {
-
-  if (bSkippedToBossReady)
-  {
+	// 이미 클리어된 상태라면 중복 처리 방지
+	if (Phase2RemainingMonsterCount <= 0)
+	{
 		return;
-  }
+	}
 
-    if (bSkippedToBossReady)
-    {
-        return;
-    }
-
-	// 2-2에서 아직 살아있는 몬스터 수 감소
 	--Phase2RemainingMonsterCount;
 
-	// 3차 스폰(Index 2)까지 시작된 상태이고
-	// 모든 2-2 몬스터가 죽었을 때만 2-2 종료
-	if (Phase2RemainingMonsterCount <= 0 &&
-		CurrentPhase2SpawnIndex >= 2)
+	OnMonsterCountChanged.Broadcast(
+		Phase2RemainingMonsterCount,
+		Phase2TotalMonsterCount
+	);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Stage2 2-2 Remaining Monsters: %d"),
+		Phase2RemainingMonsterCount
+	);
+
+	// 2-2 몬스터를 전부 처치
+	if (Phase2RemainingMonsterCount <= 0)
 	{
 		Phase2RemainingMonsterCount = 0;
 
@@ -281,9 +284,14 @@ void AWaveManager2::OnPhase2MonsterKilled()
 			TEXT("===== STAGE 2 - 2-2 COMBAT COMPLETE =====")
 		);
 
+		// 엘리베이터 생성
 		SpawnElevator();
-		// 2-2 전체 클리어 후 엘리베이터 키 생성
+
+		// 엘리베이터 열쇠 생성
 		SpawnElevatorKey();
+
+		// 전투 종료 후 준비 BGM
+		ChangeBGM(PreparationBGM);
 	}
 }
 
@@ -451,4 +459,24 @@ void AWaveManager2::SkipToBossReady()
 
     // 보스 트리거에 들어가기 전까지 준비 음악을 재생합니다.
     ChangeBGM(PreparationBGM);
+}
+
+int32 AWaveManager2::GetCurrentMonsterCount() const
+{
+	if (bPhase2Started)
+	{
+		return Phase2RemainingMonsterCount;
+	}
+
+	return Phase1RemainingMonsterCount;
+}
+
+int32 AWaveManager2::GetCurrentTotalMonsterCount() const
+{
+	if (bPhase2Started)
+	{
+		return Phase2TotalMonsterCount;
+	}
+
+	return Phase1TotalMonsterCount;
 }

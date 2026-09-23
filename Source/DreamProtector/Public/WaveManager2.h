@@ -10,7 +10,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnStage2WaveCountdownStarted,
 	int32, WaveNumber
 );
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnStage2MonsterCountChanged,
+	int32, RemainingCount,
+	int32, TotalCount
+);
 	class ASpawnVolume;
 	class ABaseMonster;
 	class AElevator;
@@ -89,7 +93,7 @@ protected:
 
 		// 현재 2-2 스폰 차수
 		int32 CurrentPhase2SpawnIndex = 0;
-
+		int32 Phase1TotalMonsterCount = 0;
 		void StartPhase1();
 		void StartPhase2();
 		void StartPreparation();
@@ -108,6 +112,7 @@ protected:
 	// HUD에 카운트다운 시작을 알리는 함수
 	void NotifyPhase1Countdown();
 	void NotifyPhase2Countdown();
+	int32 Phase1RemainingMonsterCount = 0;
 
 		// 2-2 몬스터 스폰
 		void SpawnPhase2Monsters();
@@ -184,4 +189,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stage 2|Debug")
 	void SkipToBossReady();
+
+	void OnPhase1MonsterKilled();
+	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
+	FOnStage2MonsterCountChanged OnMonsterCountChanged;
+	UFUNCTION(BlueprintCallable, Category = "Stage 2|UI")
+	int32 GetCurrentMonsterCount() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Stage 2|UI")
+	int32 GetCurrentTotalMonsterCount() const;
 };
