@@ -254,10 +254,16 @@ void AWaveManager2::SpawnNextPhase2Wave()
 
 void AWaveManager2::OnPhase2MonsterKilled()
 {
+
   if (bSkippedToBossReady)
   {
 		return;
   }
+
+    if (bSkippedToBossReady)
+    {
+        return;
+    }
 
 	// 2-2에서 아직 살아있는 몬스터 수 감소
 	--Phase2RemainingMonsterCount;
