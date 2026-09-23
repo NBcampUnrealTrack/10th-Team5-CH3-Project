@@ -308,22 +308,25 @@ void ABossMonster::Tick(float DeltaTime)
 
 	if (CurrentIntroState == EBossIntroState::Rising)
 	{
-		// 성장과 상승이 모두 끝나면 등장 완료
 		if (!bIsGrowing)
 		{
 			CurrentIntroState = EBossIntroState::Done;
 			bIntroFinished = true;
 
+			bIsInvincible = false;
+
 			if (AAIController* AIController = Cast<AAIController>(GetController()))
 			{
-				if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
-				{
-					BB->SetValueAsBool(TEXT("bIntroFinished"), true);
-				}
-
+				// BT를 먼저 시작시키고
 				if (ABossAIController* BossAIController = Cast<ABossAIController>(AIController))
 				{
 					BossAIController->StartBossBattle();
+				}
+
+				// 그다음에 블랙보드 값을 세팅 (BT가 시작된 이후에 써야 리셋 안 됨)
+				if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
+				{
+					BB->SetValueAsBool(TEXT("bIntroFinished"), true);
 				}
 			}
 		}
