@@ -22,63 +22,81 @@ AWaveManager2::AWaveManager2()
 
 void AWaveManager2::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	ChangeBGM(TutorialBGM);
+    ChangeBGM(TutorialBGM);
 
-	// 시작 후 30초: 2-1 전투 시작
-	GetWorldTimerManager().SetTimer(
-		Phase1TimerHandle,
-		this,
-		&AWaveManager2::StartPhase1,
-		30.0f,
-		false
-	);
+    // 2-1 전투 시작 3초 전
+    GetWorldTimerManager().SetTimer(
+        Phase1CountdownTimerHandle,
+        this,
+        &AWaveManager2::NotifyPhase1Countdown,
+        27.0f,
+        false
+    );
 
-	// 시작 후 90초: 준비시간 시작
-	GetWorldTimerManager().SetTimer(
-		PreparationTimerHandle,
-		this,
-		&AWaveManager2::StartPreparation,
-		90.0f,
-		false
-	);
+    // 2-2 전투 시작 3초 전
+    GetWorldTimerManager().SetTimer(
+        Phase2CountdownTimerHandle,
+        this,
+        &AWaveManager2::NotifyPhase2Countdown,
+        132.0f,
+        false
+    );
 
-	// 시작 후 135초: 2-2 전투 시작
-	GetWorldTimerManager().SetTimer(
-		Phase2TimerHandle,
-		this,
-		&AWaveManager2::StartPhase2,
-		135.0f,
-		false
-	);
+    // 시작 후 30초: 2-1 전투 시작
+    GetWorldTimerManager().SetTimer(
+        Phase1TimerHandle,
+        this,
+        &AWaveManager2::StartPhase1,
+        30.0f,
+        false
+    );
 
-	// 225초: 두 번째 준비시간 시작
-	GetWorldTimerManager().SetTimer(
-		FinalPreparationTimerHandle,
-		this,
-		&AWaveManager2::StartPreparation,
-		225.0f,
-		false
-	);
+    // 시작 후 90초: 준비시간 시작
+    GetWorldTimerManager().SetTimer(
+        PreparationTimerHandle,
+        this,
+        &AWaveManager2::StartPreparation,
+        90.0f,
+        false
+    );
 
-	// 260초: 엘리베이터 생성
-	GetWorldTimerManager().SetTimer(
-		ElevatorTimerHandle,
-		this,
-		&AWaveManager2::SpawnElevator,
-		260.0f,
-		false
-	);
+    // 시작 후 135초: 2-2 전투 시작
+    GetWorldTimerManager().SetTimer(
+        Phase2TimerHandle,
+        this,
+        &AWaveManager2::StartPhase2,
+        135.0f,
+        false
+    );
 
-	// Stage 2 시작 후 90초에 대문 개방
-	GetWorldTimerManager().SetTimer(
-		GateTimerHandle,
-		this,
-		&AWaveManager2::OpenGate,
-		90.0f,
-		false
-	);
+    // 225초: 두 번째 준비시간 시작
+    GetWorldTimerManager().SetTimer(
+        FinalPreparationTimerHandle,
+        this,
+        &AWaveManager2::StartPreparation,
+        225.0f,
+        false
+    );
+
+    // 270초: 준비시간 종료 후 엘리베이터 생성
+    GetWorldTimerManager().SetTimer(
+        ElevatorTimerHandle,
+        this,
+        &AWaveManager2::SpawnElevator,
+        260.0f,
+        false
+    );
+
+    // Stage 2 시작 후 90초에 대문 개방
+    GetWorldTimerManager().SetTimer(
+        GateTimerHandle,
+        this,
+        &AWaveManager2::OpenGate,
+        90.0f,
+        false
+    );
 }
 
 void AWaveManager2::Tick(float DeltaTime)
@@ -372,4 +390,14 @@ void AWaveManager2::ChangeBGM(USoundBase* NewMusic)
 	{
 		BGMComponent->Play();
 	}
+}
+
+void AWaveManager2::NotifyPhase1Countdown()
+{
+    OnWaveCountdownStarted.Broadcast(1);
+}
+
+void AWaveManager2::NotifyPhase2Countdown()
+{
+    OnWaveCountdownStarted.Broadcast(2);
 }

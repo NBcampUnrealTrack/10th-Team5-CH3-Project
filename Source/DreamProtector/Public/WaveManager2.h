@@ -1,50 +1,60 @@
-	#pragma once
+#pragma once
 
-	#include "CoreMinimal.h"
-	#include "GameFramework/Actor.h"
-	#include "WaveManager2.generated.h"
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "WaveManager2.generated.h"
 
-	class ASpawnVolume;
-	class ABaseMonster;
-	class AElevator;
-	class AElevatorKey;
-	class UAudioComponent;
-	class USoundBase;
+// HUD에 카운트다운 시작과 웨이브 번호를 전달하는 이벤트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnStage2WaveCountdownStarted,
+	int32, WaveNumber
+);
 
-	USTRUCT(BlueprintType)
-	struct FPhase2SpawnData
-	{
-		GENERATED_BODY()
+class ASpawnVolume;
+class ABaseMonster;
+class AElevator;
+class AElevatorKey;
+class UAudioComponent;
+class USoundBase;
 
-		// 어떤 SpawnVolume에서 스폰할지
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		TObjectPtr<ASpawnVolume> SpawnVolume;
+USTRUCT(BlueprintType)
+struct FPhase2SpawnData
+{
+	GENERATED_BODY()
 
-		// 스폰할 몬스터 종류
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		TSubclassOf<ABaseMonster> MonsterClass;
+	// 어떤 SpawnVolume에서 스폰할지
+  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+  TObjectPtr<ASpawnVolume> SpawnVolume;
 
-		// 스폰할 몬스터 수
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		int32 SpawnCount = 0;
+  // 스폰할 몬스터 종류
+  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+  TSubclassOf<ABaseMonster> MonsterClass;
 
-		// 몇 번째 스폰에서 생성할지
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		int32 SpawnIndex = 0;
-	};
+  // 스폰할 몬스터 수
+  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+  int32 SpawnCount = 0;
 
-	UCLASS()
-	class DREAMPROTECTOR_API AWaveManager2 : public AActor
-	{
-		GENERATED_BODY()
+  // 몇 번째 스폰에서 생성할지
+  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+  int32 SpawnIndex = 0;
+};
 
-	public:
+UCLASS()
+class DREAMPROTECTOR_API AWaveManager2 : public AActor
+{
+  GENERATED_BODY()
+
+  public:
 		AWaveManager2();
 		// 2-2 몬스터가 죽었을 때 호출
 		void OnPhase2MonsterKilled();
 
-	protected:
-		virtual void BeginPlay() override;
+	// 블루프린트에서 연결할 수 있는 카운트다운 시작 알림
+	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
+	FOnStage2WaveCountdownStarted OnWaveCountdownStarted;
+
+  protected:
+	  virtual void BeginPlay() override;
 
 		// Stage 2 시작 후 경과 시간(초)
 		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
@@ -83,13 +93,20 @@
 		void StartPhase2();
 		void StartPreparation();
 
-		// Stage 2 시간 이벤트를 관리하는 타이머
-		FTimerHandle Phase1TimerHandle;
-		FTimerHandle Phase2TimerHandle;
-		FTimerHandle ElevatorTimerHandle;
-		FTimerHandle GateTimerHandle;
-		FTimerHandle PreparationTimerHandle;
-		FTimerHandle FinalPreparationTimerHandle;
+	// Stage 2 시간 이벤트를 관리하는 타이머
+	FTimerHandle Phase1TimerHandle;
+	FTimerHandle Phase2TimerHandle;
+	FTimerHandle ElevatorTimerHandle;
+	FTimerHandle GateTimerHandle;
+	FTimerHandle PreparationTimerHandle;
+	FTimerHandle FinalPreparationTimerHandle;
+	// 각 전투의 카운트다운 시작을 예약하는 타이머
+	FTimerHandle Phase1CountdownTimerHandle;
+	FTimerHandle Phase2CountdownTimerHandle;
+
+	// HUD에 카운트다운 시작을 알리는 함수
+	void NotifyPhase1Countdown();
+	void NotifyPhase2Countdown();
 
 		// 2-2 몬스터 스폰
 		void SpawnPhase2Monsters();

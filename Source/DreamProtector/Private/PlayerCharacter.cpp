@@ -103,6 +103,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 매 프레임 플레이어 앞에
+	// 상호작용 가능한 Actor가 있는지 확인
+	CheckInteractable();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -1029,4 +1032,81 @@ void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
 	{
 		Die();
 	}
+	else
+	{
+		// 살아있으면 피격 애니메이션 재생
+		PlayHitReaction();
+	}
+}
+
+void APlayerCharacter::PlayHitReaction()
+{
+	// 피격 Montage가 지정되지 않았다면 실행하지 않음
+	if (!HitReactMontage)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("HitReactMontage is not assigned!")
+		);
+
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance를 통해
+	// AM_HitReact Montage를 재생한다.
+	PlayAnimMontage(HitReactMontage);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Hit Reaction Montage Played")
+	);
+}
+
+void APlayerCharacter::CheckInteractable()
+{
+	//상호작용 탐색 거리
+	const float InteractionDistance = 500.0f;
+	//상호작용 탐색 범위
+	const float InteractionRadius = 120.0f;
+
+	//플레이어 현재 위치
+	const FVector Start = GetActorLocation();
+
+	//플레이어가 바라보는 방향으로 500 만큼 앞
+	const FVector End = Start + GetActorForwardVector() * InteractionDistance;
+
+	//Sweep 결과 저장
+	FHitResult HitResult;
+	//충돌 검사 조건
+	FCollisionQueryParams Params;
+	//자기 자신은 검사 대상에서 제외
+	Params.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(InteractionRadius),
+		Params
+	);
+
+	//상호작용 가능한 Actor인지 확인
+	bool bCanInteract = false;
+
+	if (bHit)
+	{
+		AActor* HitActor = HitResult.GetActor();
+
+		//감지된 Actor가 IInteractable 인터페이스를 구현하고 있다면 상호작용 가능한 상태
+		if (HitActor && HitActor->Implements<UInteractable>())
+		{
+			bCanInteract = true;
+		}
+	}
+	//HUD에게 현재 상호작용 가능 여부 전달
+	OnInteractionChanged.Broadcast(bCanInteract);
 }
