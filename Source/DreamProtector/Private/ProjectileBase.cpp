@@ -138,11 +138,19 @@ void AProjectileBase::ActivateProjectile(
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
 
-	//Projectile Movement 활성화 및 발사 속도 적용
 	if (ProjectileMovement)
 	{
+		// 풀링으로 재사용되는 ProjectileMovement가
+		// 다시 SphereCollision을 움직이도록 지정한다.
+		ProjectileMovement->SetUpdatedComponent(SphereCollision);
+
+		// 이전 사용에서 남아있을 수 있는 이동 상태를 먼저 초기화
+		ProjectileMovement->StopMovementImmediately();
+
+		// Movement Component를 다시 활성화
 		ProjectileMovement->Activate(true);
 
+		// 새로운 발사 방향/속도를 다시 설정
 		ProjectileMovement->Velocity =
 			SpawnRotation.Vector() *
 			ProjectileMovement->InitialSpeed;
