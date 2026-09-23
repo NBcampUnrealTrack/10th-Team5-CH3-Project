@@ -44,6 +44,17 @@ void ABossMonster::BeginPlay()
 		LungeTargetLocation = LungeActors[0]->GetActorLocation();
 	}
 
+	TArray<AActor*> DeathGroundActors;
+	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName(TEXT("BossDeathGround")), DeathGroundActors);
+	if (DeathGroundActors.Num() > 0)
+	{
+		DeathGroundLocation = DeathGroundActors[0]->GetActorLocation();
+	}
+	else
+	{
+		DeathGroundLocation = GetActorLocation();
+	}
+
 	OnBossHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 	UpdatePhaseInBlackboard();
 
@@ -143,11 +154,6 @@ void ABossMonster::HandleDeath()
 {
 	if (bIsDead) return;
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("HandleDeath called!"));
-	}
-
 	bIsDead = true;
 	bIsInvincible = true;
 
@@ -162,12 +168,7 @@ void ABossMonster::HandleDeath()
 	// [테스트용] 일단 트레이스 없이 보스 위치에 바로 재생
 	if (DeathGroundEffect)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan,
-				FString::Printf(TEXT("Spawning effect at: %s"), *GetActorLocation().ToString()));
-		}
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathGroundEffect, GetActorLocation(), FRotator::ZeroRotator);
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathGroundEffect, DeathGroundLocation, FRotator::ZeroRotator);
 	}
 
 	/* 발밑에 사망 이펙트(마법진 등) 재생 - 아래로 트레이스해서 실제 바닥 위치를 찾음
@@ -359,18 +360,6 @@ void ABossMonster::Tick(float DeltaTime)
 	}
 }
 
-//void ABossMonster::BeginRisingPhase()
-//{
-//	CurrentIntroState = EBossIntroState::Rising;
-//
-//	if (RoarMontage)
-//	{
-//		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
-//		{
-//			AnimInstance->Montage_Play(RoarMontage);
-//		}
-//	}
-//}
 void ABossMonster::BeginRisingPhase()
 {
 	CurrentIntroState = EBossIntroState::Rising;
@@ -533,4 +522,98 @@ void ABossMonster::SpawnRangedProjectile()
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	GetWorld()->SpawnActor<AActor>(RangedProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+}
+
+bool ABossMonster::TryStartMeleeAttack()
+{
+	// 이미 공격 애니메이션 재생 중이면, 그냥 계속 성공으로 처리해서 재시작 안 시킴
+	if (bIsMeleeAttacking)
+	{
+		return true;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return false;
+	}
+
+	const float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+	if (Distance > MeleeAttackRange)
+	{
+		return false;
+	}
+
+	bIsMeleeAttacking = true;
+
+	// 혹시 남아있는 원거리 공격 예약(발사체 스폰 등)이 있다면 취소
+	GetWorldTimerManager().ClearTimer(RangedAttackTimerHandle);
+	GetWorldTimerManager().ClearTimer(RangedAttackSoundTimerHandle);
+
+	if (MeleeAttackMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			AnimInstance->Montage_Play(MeleeAttackMontage);
+		}
+	}
+
+	
+	// 낫 휘두르는 사운드는 애니메이션보다 0.8초 늦게 재생
+	GetWorldTimerManager().SetTimer(MeleeSwingSoundTimerHandle, this, &ABossMonster::PlayMeleeSwingSound, 0.8f, false);
+
+	GetWorldTimerManager().SetTimer(MeleeAttackTimerHandle, this, &ABossMonster::ApplyMeleeHit, MeleeAttackCastDelay, false);
+
+	return true;
+}
+
+void ABossMonster::ApplyMeleeHit()
+{
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	// 타격 판정 시점에 다시 한번 거리 체크 (그 사이 플레이어가 도망갔을 수도 있으니)
+	const float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+	if (Distance > MeleeAttackRange * 1.2f)
+	{
+		return;
+	}
+
+	UGameplayStatics::ApplyDamage(PlayerPawn, MeleeDamage, nullptr, this, nullptr);
+
+	// 타격 성공 시 사운드 재생
+	if (MeleeHitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, MeleeHitSound, PlayerPawn->GetActorLocation());
+	}
+
+	// 넉백: 보스 -> 플레이어 방향으로 살짝 띄우면서 밀어냄
+	if (ACharacter* PlayerCharacter = Cast<ACharacter>(PlayerPawn))
+	{
+		FVector KnockbackDir = (PlayerPawn->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+		KnockbackDir.Z = 0.4f; // 살짝 위로도 띄우기
+		KnockbackDir.Normalize();
+
+		PlayerCharacter->LaunchCharacter(KnockbackDir * MeleeKnockbackForce, true, true);
+	}
+
+	// 몽타주 재생이 끝날 시점에 공격 상태 해제 (남은 재생 시간만큼 대기)
+	const float RemainingTime = MeleeAttackMontage ? FMath::Max(MeleeAttackMontage->GetPlayLength() - MeleeAttackCastDelay, 0.2f) : 0.5f;
+	GetWorldTimerManager().SetTimer(MeleeAttackEndTimerHandle, this, &ABossMonster::EndMeleeAttack, RemainingTime, false);
+}
+
+void ABossMonster::EndMeleeAttack()
+{
+	bIsMeleeAttacking = false;
+}
+
+void ABossMonster::PlayMeleeSwingSound()
+{
+	if (MeleeSwingSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, MeleeSwingSound, GetActorLocation());
+	}
 }
