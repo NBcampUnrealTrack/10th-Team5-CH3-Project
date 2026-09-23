@@ -135,6 +135,12 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 //실제 플레이어 이동함수
 void APlayerCharacter::Move(const FVector2D& MovementVector)
 {
+	// 상호작용 중에는 이동 입력 무시
+	if (bIsInteracting)
+	{
+		return;
+	}
+
 	if (!Controller)
 	{
 		return;
@@ -406,8 +412,7 @@ void APlayerCharacter::TryInteract()
 	FVector Start = GetActorLocation();
 
 	// 플레이어가 바라보는 방향으로 500만큼 떨어진 위치
-	FVector End =
-		Start + GetActorForwardVector() * InteractionDistance;
+	FVector End = Start + GetActorForwardVector() * InteractionDistance;
 
 	// Sweep 결과를 저장할 변수
 	FHitResult HitResult;
@@ -429,28 +434,47 @@ void APlayerCharacter::TryInteract()
 		Params
 	);
 
-
-	// 무언가 감지됐을 때만 실행
-	if (bHit)
+	if (!bHit)
 	{
-		// 감지된 Actor 가져오기
-		AActor* HitActor = HitResult.GetActor();
+		return;
+	}
 
-		// 해당 Actor가 존재하면서
-		// IInteractable 인터페이스를 구현했는지 확인
-		if (HitActor && HitActor->Implements<UInteractable>())
-		{
-			IInteractable* Interactable =
-				Cast<IInteractable>(HitActor);
+	// 감지된 Actor 가져오기
+	AActor* HitActor = HitResult.GetActor();
 
-			if (Interactable)
-			{
-				// 플레이어 자신을 전달하면서 상호작용 실행
-				Interactable->Interact(this);
-			}
-		}
+	// Actor가 없으면 종료
+	if (!HitActor)
+	{
+		return;
+	}
+
+	// IInteractable 인터페이스를 구현하지 않았다면 종료
+	if (!HitActor->Implements<UInteractable>())
+	{
+		return;
+	}
+
+	//현재 감지한 Actor를 임시로 저장
+	PendingInteractActor = HitActor;
+
+	if (InteractMontage)
+	{
+		// 상호작용 상태 시작
+		bIsInteracting = true;
+
+		// 현재 이동을 즉시 정지
+		GetCharacterMovement()->StopMovementImmediately();
+
+		// 상호작용 애니메이션 재생
+		PlayAnimMontage(InteractMontage);
+	}
+	else
+	{
+		ExecuteInteraction();
 	}
 }
+
+
 
 //게터 현재 체력
 float APlayerCharacter::GetCurrentHP()const
@@ -1037,6 +1061,37 @@ void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
 		// 살아있으면 피격 애니메이션 재생
 		PlayHitReaction();
 	}
+}
+
+void APlayerCharacter::ExecuteInteraction()
+{
+	// 저장된 상호작용 대상이 없다면 종료
+	if (!PendingInteractActor)
+	{
+		return;
+	}
+
+	// 저장해둔 Actor가 IInteractable 인터페이스를 구현하고 있는지 다시 확인
+	if (PendingInteractActor->Implements<UInteractable>())
+	{
+		// 인터페이스로 캐스팅
+		IInteractable* Interactable =
+			Cast<IInteractable>(PendingInteractActor);
+
+		if (Interactable)
+		{
+			Interactable->Interact(this);
+		}
+	}
+
+	// 상호작용이 끝났으므로 저장해둔 Actor 참조 제거
+	PendingInteractActor = nullptr;
+}
+
+void APlayerCharacter::EndInteraction()
+{
+	// 상호작용 상태 종료
+	bIsInteracting = false;
 }
 
 void APlayerCharacter::PlayHitReaction()

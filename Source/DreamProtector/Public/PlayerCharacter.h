@@ -127,6 +127,10 @@ protected:
 	bool bIsAttacking = false;
 	bool bCanAttack = true;
 
+	// 현재 상호작용 애니메이션을 재생 중인지
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	bool bIsInteracting = false;
+
 
  
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -146,6 +150,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage>HitReactMontage;
 
+	// 상호작용 시 재생할 전신 애니메이션 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> InteractMontage;
+
+	// 실제로 상호작용할 Actor를 임시로 저장
+	UPROPERTY()
+	TObjectPtr<AActor> PendingInteractActor;
+
 	//현재 모드
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	EPlayControlMode CurrentControlMode = EPlayControlMode::ThirdPerson;
@@ -161,6 +173,7 @@ protected:
 	// 설치형 아이템을 플레이어 앞에 생성할 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	float ItemSpawnDistance = 150.0f;
+
 
 public:	
 	
@@ -209,6 +222,10 @@ public:
 		return ProjectilePoolComponent;
 	}
 
+	// 상호작용 애니메이션 종료 후 플레이어의 이동을 다시 허용한다.
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void EndInteraction();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 	UProjectilePoolComponent* ProjectilePoolComponent;
 
@@ -226,6 +243,10 @@ public:
 	// 몬스터 공격 등으로 플레이어가 데미지를 받을 때 호출
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void TakeDamageFromEnemy(float DamageAmount);
+
+	// Anim Notify에서 호출하여 실제 상호작용을 실행
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void ExecuteInteraction();
 
 	// 피격 애니메이션 재생
 	void PlayHitReaction();
