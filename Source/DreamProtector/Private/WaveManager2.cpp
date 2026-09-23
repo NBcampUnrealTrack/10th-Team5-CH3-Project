@@ -5,6 +5,8 @@
 #include "ElevatorKey.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 AWaveManager2::AWaveManager2()
 {
@@ -266,6 +268,11 @@ void AWaveManager2::SpawnNextPhase2Wave()
 
 void AWaveManager2::OnPhase2MonsterKilled()
 {
+    if (bSkippedToBossReady)
+    {
+        return;
+    }
+
     // 2-2에서 아직 살아있는 몬스터 수 감소
     --Phase2RemainingMonsterCount;
 
@@ -376,4 +383,60 @@ void AWaveManager2::NotifyPhase1Countdown()
 void AWaveManager2::NotifyPhase2Countdown()
 {
     OnWaveCountdownStarted.Broadcast(2);
+}
+
+void AWaveManager2::SkipToBossReady()
+{
+    if (bSkippedToBossReady)
+    {
+        return;
+    }
+
+    bSkippedToBossReady = true;
+
+    // 기존 웨이브와 준비시간의 예약을 모두 취소합니다.
+    FTimerManager& Timers = GetWorldTimerManager();
+
+    Timers.ClearTimer(Phase1TimerHandle);
+    Timers.ClearTimer(Phase2TimerHandle);
+    Timers.ClearTimer(PreparationTimerHandle);
+    Timers.ClearTimer(FinalPreparationTimerHandle);
+    Timers.ClearTimer(Phase1CountdownTimerHandle);
+    Timers.ClearTimer(Phase2CountdownTimerHandle);
+    Timers.ClearTimer(Phase2SpawnTimerHandle);
+    Timers.ClearTimer(ElevatorTimerHandle);
+    Timers.ClearTimer(GateTimerHandle);
+
+    // 테스트용: 현재 맵의 일반 몬스터를 정리합니다.
+    // BossMonster는 BaseMonster를 상속하지 않으므로 포함되지 않습니다.
+    TArray<AActor*> Monsters;
+    UGameplayStatics::GetAllActorsOfClass(
+        this,
+        ABaseMonster::StaticClass(),
+        Monsters
+    );
+
+    for (AActor* Monster : Monsters)
+    {
+        if (IsValid(Monster))
+        {
+            Monster->Destroy();
+        }
+    }
+
+    // 마지막 준비시간 이후의 진행 상태로 맞춥니다.
+    StageElapsedTime = 260.0f;
+    bPhase1Started = true;
+    bPhase2Started = true;
+
+    CurrentPhase2SpawnIndex = 3;
+    Phase2RemainingMonsterCount = 0;
+
+    // 통로와 다음 구간에 필요한 액터를 준비합니다.
+    OpenGate();
+    SpawnElevator();
+    SpawnElevatorKey();
+
+    // 보스 트리거에 들어가기 전까지 준비 음악을 재생합니다.
+    ChangeBGM(PreparationBGM);
 }
