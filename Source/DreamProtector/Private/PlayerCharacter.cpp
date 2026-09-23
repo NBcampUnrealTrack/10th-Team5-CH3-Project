@@ -1029,4 +1029,34 @@ void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
 	{
 		Die();
 	}
+	else
+	{
+		// 살아있으면 피격 애니메이션 재생
+		PlayHitReaction();
+	}
+}
+
+void APlayerCharacter::PlayHitReaction()
+{
+	// 피격 Montage가 지정되지 않았다면 실행하지 않음
+	if (!HitReactMontage)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("HitReactMontage is not assigned!")
+		);
+
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance를 통해
+	// AM_HitReact Montage를 재생한다.
+	PlayAnimMontage(HitReactMontage);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Hit Reaction Montage Played")
+	);
 }

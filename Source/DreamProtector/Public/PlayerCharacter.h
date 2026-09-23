@@ -126,6 +126,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ReloadMontage;
 
+	//플레이어 피격 시 재생 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage>HitReactMontage;
+
 	//현재 모드
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	EPlayControlMode CurrentControlMode = EPlayControlMode::ThirdPerson;
@@ -207,4 +211,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void TakeDamageFromEnemy(float DamageAmount);
 
+	// 피격 애니메이션 재생
+	void PlayHitReaction();
 };
