@@ -167,8 +167,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 	TObjectPtr<USoundBase> PreparationBGM;
 
-	// 현재 음악을 멈추고 새 음악을 재생
-	void ChangeBGM(USoundBase* NewMusic);
+	// 보스전 준비 상태로 건너뛰었는지 확인
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2|Debug")
+	bool bSkippedToBossReady = false;
+
 public:
 	virtual void Tick(float DeltaTime) override;
+
+	// 블루프린트에서도 음악 변경을 요청할 수 있게 합니다.
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	void ChangeBGM(USoundBase* NewMusic);
+
+	UFUNCTION(BlueprintCallable, Category = "Stage 2|Debug")
+	void SkipToBossReady();
 };
