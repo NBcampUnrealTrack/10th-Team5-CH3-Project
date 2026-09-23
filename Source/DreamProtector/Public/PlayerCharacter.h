@@ -20,12 +20,22 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	int32, CurrentMana,
 	int32, MaxMana
 );
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnHealthChanged,
 	float, CurrentHealth,
 	float, MaxHealth
 );
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDied);
+
+// 상호작용 UI 표시 여부 전달
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnInteractionChanged,
+	bool,
+	bCanInteract
+);
+
 UENUM(BlueprintType)
 enum class EPlayControlMode : uint8
 {
@@ -43,12 +53,18 @@ public:
 	APlayerCharacter();
 	//블루프린트에서 이벤트를 연결할수있게해줌
 	//위 매크로에서 만든 딜리게이트타입의 변수
+	//마나 변경 알림 
 	UPROPERTY(BlueprintAssignable, Category = "Mana")
 	FonManaChanged OnManaChanged;
+	//체력 변경 알림
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnHealthChanged OnHealthChanged;
+	//플레이어 사망 알림
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnPlayerDied OnPlayerDied;
+	//상호작용 가능 여부 알림
+	UPROPERTY(BlueprintAssignable, Category = "Interaction")
+	FOnInteractionChanged OnInteractionChanged;
 
 
 protected:
@@ -213,4 +229,6 @@ public:
 
 	// 피격 애니메이션 재생
 	void PlayHitReaction();
+
+	void CheckInteractable();
 };
