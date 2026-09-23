@@ -37,7 +37,7 @@ void AElevator::BeginPlay()
 	// 엘리베이터가 처음 배치된 위치를 시작 위치로 저장
 	StartLocation = GetActorLocation();
 
-	// 일단 테스트용으로 위쪽 500만큼 이동할 위치를 목표 위치로 설정
+	// 위쪽 4500만큼 이동할 위치를 목표 위치로 설정
 	TargetLocation = StartLocation + FVector(0.0f, 0.0f, 4500.0f);
 }
 
@@ -122,6 +122,7 @@ void AElevator::StartElevatorMovement()
 		TEXT("===== ELEVATOR MOVEMENT START =====")
 	);
 }
+
 void AElevator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

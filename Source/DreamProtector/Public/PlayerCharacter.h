@@ -20,12 +20,22 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	int32, CurrentMana,
 	int32, MaxMana
 );
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnHealthChanged,
 	float, CurrentHealth,
 	float, MaxHealth
 );
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDied);
+
+// 상호작용 UI 표시 여부 전달
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnInteractionChanged,
+	bool,
+	bCanInteract
+);
+
 UENUM(BlueprintType)
 enum class EPlayControlMode : uint8
 {
@@ -43,12 +53,18 @@ public:
 	APlayerCharacter();
 	//블루프린트에서 이벤트를 연결할수있게해줌
 	//위 매크로에서 만든 딜리게이트타입의 변수
+	//마나 변경 알림 
 	UPROPERTY(BlueprintAssignable, Category = "Mana")
 	FonManaChanged OnManaChanged;
+	//체력 변경 알림
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnHealthChanged OnHealthChanged;
+	//플레이어 사망 알림
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnPlayerDied OnPlayerDied;
+	//상호작용 가능 여부 알림
+	UPROPERTY(BlueprintAssignable, Category = "Interaction")
+	FOnInteractionChanged OnInteractionChanged;
 
 
 protected:
@@ -111,6 +127,10 @@ protected:
 	bool bIsAttacking = false;
 	bool bCanAttack = true;
 
+	// 현재 상호작용 애니메이션을 재생 중인지
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	bool bIsInteracting = false;
+
 
  
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -125,6 +145,18 @@ protected:
 	UAnimMontage* AutoFireMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ReloadMontage;
+
+	//플레이어 피격 시 재생 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage>HitReactMontage;
+
+	// 상호작용 시 재생할 전신 애니메이션 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> InteractMontage;
+
+	// 실제로 상호작용할 Actor를 임시로 저장
+	UPROPERTY()
+	TObjectPtr<AActor> PendingInteractActor;
 
 	//현재 모드
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
@@ -141,6 +173,7 @@ protected:
 	// 설치형 아이템을 플레이어 앞에 생성할 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	float ItemSpawnDistance = 150.0f;
+
 
 public:	
 	
@@ -189,6 +222,10 @@ public:
 		return ProjectilePoolComponent;
 	}
 
+	// 상호작용 애니메이션 종료 후 플레이어의 이동을 다시 허용한다.
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void EndInteraction();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 	UProjectilePoolComponent* ProjectilePoolComponent;
 
@@ -207,4 +244,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void TakeDamageFromEnemy(float DamageAmount);
 
+	// Anim Notify에서 호출하여 실제 상호작용을 실행
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void ExecuteInteraction();
+
+	// 피격 애니메이션 재생
+	void PlayHitReaction();
+
+	void CheckInteractable();
 };

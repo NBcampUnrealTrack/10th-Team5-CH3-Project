@@ -1,4 +1,7 @@
 ﻿#include "Melee.h"
+#include "PlayerCharacter.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Kismet/GameplayStatics.h"
 
 AMelee::AMelee()
@@ -40,30 +43,43 @@ bool AMelee::CanAttack() const
 
 void AMelee::Attack_Implementation()
 {
-    UE_LOG(LogTemp, Warning, TEXT("[Melee] Attack_Implementation 호출됨! 현재 시각: %f"), GetWorld()->GetTimeSeconds());
+    UE_LOG(LogTemp, Warning, TEXT("[Melee] Attack_Implementation CALLED"));
 
-    // 쿨타임 갱신
     LastAttackTime = GetWorld()->GetTimeSeconds();
 
-    TArray<AActor*> OverlappingActors;
-    AttackCollision->GetOverlappingActors(OverlappingActors);
-
-    UE_LOG(LogTemp, Warning, TEXT("[Melee] 오버랩된 액터 수: %d"), OverlappingActors.Num());
-
-    for (AActor* Actor : OverlappingActors)
+    if (AttackMontage)
     {
-        if (Actor == this)
+        UE_LOG(LogTemp, Warning, TEXT("[Melee] AttackMontage EXISTS"));
+
+        if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
         {
-            continue;
+            UE_LOG(LogTemp, Warning, TEXT("[Melee] Montage_Play!"));
+            AnimInstance->Montage_Play(AttackMontage);
         }
-        //// 플레이어 액터에 "Player" 태그가 있어야 공격이 적용됩니다.
-        if (!Actor->ActorHasTag(TEXT("Player")))
-        {
-            continue;
-        }
-        UE_LOG(LogTemp, Warning, TEXT("Melee Attack! Damage: %f"), AttackDamage);
-        UGameplayStatics::ApplyDamage(Actor,AttackDamage,nullptr,this,UDamageType::StaticClass());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Melee] AttackMontage IS NULL"));
     }
 }
 
 
+void AMelee::ApplyMeleeDamage()
+{
+    TArray<AActor*> OverlappingActors;
+    AttackCollision->GetOverlappingActors(OverlappingActors);
+
+    for (AActor* Actor : OverlappingActors)
+    {
+        if (Actor == this)
+            continue;
+
+        APlayerCharacter* Player = Cast<APlayerCharacter>(Actor);
+        if (!Player)
+            continue;
+
+        UE_LOG(LogTemp, Warning, TEXT("Melee Hit! Damage: %f"), AttackDamage);
+
+        Player->TakeDamageFromEnemy(AttackDamage);
+    }
+}

@@ -4,24 +4,30 @@
 #include "GameFramework/Actor.h"
 #include "ElevatorKey.generated.h"
 
+class AElevator;
+
 UCLASS()
 class DREAMPROTECTOR_API AElevatorKey : public AActor
 {
 	GENERATED_BODY()
 
 public:
+
 	AElevatorKey();
 
+	void SetElevator(AElevator* InElevator);
+
 protected:
-	// 키의 실제 모습
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Elevator Key")
 	TObjectPtr<class UStaticMeshComponent> KeyMesh;
 
-	// 플레이어가 키에 닿았는지 감지
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Elevator Key")
 	TObjectPtr<class USphereComponent> KeyCollision;
 
-	// 키를 획득했을 때 처리
+	UPROPERTY()
+	TObjectPtr<AElevator> Elevator;
+
 	UFUNCTION()
 	void OnKeyOverlap(
 		UPrimitiveComponent* OverlappedComponent,

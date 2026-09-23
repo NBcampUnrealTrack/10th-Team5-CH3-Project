@@ -110,23 +110,29 @@ void ABaseMonster::Die_Implementation()
 		DropComponent->DropItem();
 	}
 
-	// 2-2 몬스터인지 확인
-	if (IsPhase2Monster())
+	// Stage2 맵인지 먼저 확인
+	if (AWaveManager2* WaveManager2 =
+		Cast<AWaveManager2>(
+			UGameplayStatics::GetActorOfClass(
+				GetWorld(),
+				AWaveManager2::StaticClass()
+			)
+		))
 	{
-		if (AWaveManager2* WaveManager2 =
-			Cast<AWaveManager2>(
-				UGameplayStatics::GetActorOfClass(
-					GetWorld(),
-					AWaveManager2::StaticClass()
-				)
-			))
+		// Stage2 2-2에서 스폰된 몬스터
+		if (IsPhase2Monster())
 		{
 			WaveManager2->OnPhase2MonsterKilled();
+		}
+		// Stage2 2-1에 미리 배치된 몬스터
+		else
+		{
+			WaveManager2->OnPhase1MonsterKilled();
 		}
 	}
 	else
 	{
-		// 기존 Stage 1 몬스터
+		// Stage1
 		if (AWaveManager* WaveManager =
 			Cast<AWaveManager>(
 				UGameplayStatics::GetActorOfClass(
@@ -136,10 +142,6 @@ void ABaseMonster::Die_Implementation()
 			))
 		{
 			WaveManager->OnMonsterKilled();
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("WaveManager NOT Found"));
 		}
 	}
 

@@ -12,6 +12,9 @@ class DREAMPROTECTOR_API ABossAIController : public AAIController
 public:
 	virtual void OnPossess(APawn* InPawn) override;
 
+	UFUNCTION(BlueprintCallable)
+	void StartBossBattle();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AI")
 	class UBehaviorTree* BehaviorTreeAsset;
 };
