@@ -84,6 +84,19 @@ void ABaseMonster::TakeDamage(float DamageAmount)
 	// 받은 데미지만큼 체력 감소
 	CurrentHealth -= DamageAmount;           
 
+	if (CurrentHealth <= 0.0f)
+	{
+		if (AWaveManager* WaveManager =
+			Cast<AWaveManager>(
+				UGameplayStatics::GetActorOfClass(
+					GetWorld(),
+					AWaveManager::StaticClass()
+				)
+			))
+		{
+			WaveManager->NotifyMonsterRemoved(this);
+		}
+	}
 	// 데미지 받을 때마다 블루프린트 호출~
 	OnHit();
 
@@ -130,20 +143,7 @@ void ABaseMonster::Die_Implementation()
 			WaveManager2->OnPhase1MonsterKilled();
 		}
 	}
-	else
-	{
-		// Stage1
-		if (AWaveManager* WaveManager =
-			Cast<AWaveManager>(
-				UGameplayStatics::GetActorOfClass(
-					GetWorld(),
-					AWaveManager::StaticClass()
-				)
-			))
-		{
-			WaveManager->OnMonsterKilled();
-		}
-	}
+	
 
 	Destroy();
 }

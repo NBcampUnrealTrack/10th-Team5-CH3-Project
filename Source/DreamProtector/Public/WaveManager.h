@@ -73,6 +73,9 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Wave")
     FOnWaveCountdownStarted OnWaveCountdownStarted;
 
+    // 몬스터 사망 또는 삭제를 한 번만 집계
+    void NotifyMonsterRemoved(ABaseMonster* Monster);
+
 protected:
     // 현재 진행 중인 웨이브 번호
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
@@ -82,8 +85,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     int32 MaxWave = 3;
 
-
-    // 현재 웨이브에서 아직 처리해야 할 몬스터 수
+        // 현재 웨이브에서 아직 처리해야 할 몬스터 수
     // 웨이브 시작 시 해당 웨이브의 몬스터 수를 넣어줌
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     int32 CurrentMonsterCount = 0;
@@ -183,6 +185,17 @@ protected:
 
     // 조명 색을 변경하는 함수
     void ChangeWaveLightColor(const FLinearColor& NewColor);
+
+    // 이번 웨이브에서 실제로 생성한 몬스터 목록
+    UPROPERTY()
+    TArray<TObjectPtr<ABaseMonster>> WaveMonsters;
+
+    // 준비시간으로 넘어가면서 일괄 삭제하는 중인지
+    bool bCleaningUpWave = false;
+
+    // 몬스터가 삭제될 때 자동으로 호출
+    UFUNCTION()
+    void HandleWaveMonsterDestroyed(AActor* DestroyedActor);
 
 public:	
 	virtual void Tick(float DeltaTime) override;
