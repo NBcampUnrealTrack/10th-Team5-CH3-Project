@@ -1,5 +1,7 @@
 #include "Elevator.h"
 #include "Components/StaticMeshComponent.h"
+#include "PlayerCharacter.h"
+#include "InventoryComponent.h"
 
 AElevator::AElevator()
 {
@@ -23,11 +25,48 @@ AElevator::AElevator()
 	ElevatorCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ElevatorCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
-	// Overlap 이벤트 연결
-	ElevatorCollision->OnComponentBeginOverlap.AddDynamic(
-		this,
-		&AElevator::OnElevatorOverlap
-	);
+}
+
+void AElevator::Interact(AActor* Interactor)
+{
+	//상호작용한 Actor가 플레이어인지 확인 
+	APlayerCharacter* Player = Cast<APlayerCharacter>(Interactor);
+
+	if (!Player)
+	{
+		return;
+	}
+
+	//이미 이동예약이거나 이동중이면 추가 조작X
+	if (bIsMoving || GetWorldTimerManager().IsTimerActive(ElevatorMoveTimerHandle))
+	{
+		return;
+	}
+
+	//플레이어가 가지고 있는 InventoryComponent 찾기
+	UInventoryComponent* Inventory = Player->FindComponentByClass<UInventoryComponent>();
+
+	if (!Inventory)
+	{
+		return;
+	}
+
+	const FName BossKey(TEXT("BossKey"));
+
+	//보스키 가지고 있는지 확인
+	if (!Inventory->HasEnoughItem(BossKey, 1))
+	{
+		return;
+	}
+
+	//보스키 제거
+	if (!Inventory->RemoveItems(BossKey, 1))
+	{
+		return;
+	}
+
+	//엘리베이터 작동
+	MoveUp();
 }
 
 void AElevator::BeginPlay()
@@ -41,57 +80,10 @@ void AElevator::BeginPlay()
 	TargetLocation = StartLocation + FVector(0.0f, 0.0f, 4500.0f);
 }
 
-void AElevator::SetHasOperatingKey(bool bHasKey)
-{
-	bHasOperatingKey = bHasKey;
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Elevator Operating Key: %s"),
-		bHasOperatingKey ? TEXT("YES") : TEXT("NO")
-	);
-}
-
-void AElevator::OnElevatorOverlap(
-	UPrimitiveComponent* OverlappedComponent,
-	AActor* OtherActor,
-	UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex,
-	bool bFromSweep,
-	const FHitResult& SweepResult)
-{
-	// 플레이어가 아니면 무시
-	if (!OtherActor || !OtherActor->ActorHasTag(TEXT("Player")))
-	{
-		return;
-	}
-
-	// 아직 엘리베이터 작동 키가 없다면 이동하지 않음
-	if (!bHasOperatingKey)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("Elevator requires the operating key.")
-		);
-
-		return;
-	}
-
-	// 키가 있다면 엘리베이터 이동
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("===== ELEVATOR MOVE UP =====")
-	);
-
-	MoveUp();
-}
-
 void AElevator::MoveUp()
 {
-	if (bIsMoving)
+	//이미 이동중이거나 타이머 실행중이면 다시 실행 안함
+	if (bIsMoving || GetWorldTimerManager().IsTimerActive(ElevatorMoveTimerHandle))
 	{
 		return;
 	}
