@@ -1,50 +1,55 @@
-#pragma once
+	#pragma once
 
-#include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "WaveManager2.generated.h"
+	#include "CoreMinimal.h"
+	#include "GameFramework/Actor.h"
+	#include "WaveManager2.generated.h"
+
 
 // HUD에 카운트다운 시작과 웨이브 번호를 전달하는 이벤트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnStage2WaveCountdownStarted,
 	int32, WaveNumber
 );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnStage2MonsterCountChanged,
+	int32, RemainingCount,
+	int32, TotalCount
+);
+	class ASpawnVolume;
+	class ABaseMonster;
+	class AElevator;
+	class AElevatorKey;
+	class UAudioComponent;
+	class USoundBase;
 
-class ASpawnVolume;
-class ABaseMonster;
-class AElevator;
-class AElevatorKey;
-class UAudioComponent;
-class USoundBase;
+	USTRUCT(BlueprintType)
+	struct FPhase2SpawnData
+	{
+		GENERATED_BODY()
 
-USTRUCT(BlueprintType)
-struct FPhase2SpawnData
-{
-	GENERATED_BODY()
+		// 어떤 SpawnVolume에서 스폰할지
+		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+		TObjectPtr<ASpawnVolume> SpawnVolume;
 
-	// 어떤 SpawnVolume에서 스폰할지
-  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-  TObjectPtr<ASpawnVolume> SpawnVolume;
+		// 스폰할 몬스터 종류
+		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+		TSubclassOf<ABaseMonster> MonsterClass;
 
-  // 스폰할 몬스터 종류
-  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-  TSubclassOf<ABaseMonster> MonsterClass;
+		// 스폰할 몬스터 수
+		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+		int32 SpawnCount = 0;
 
-  // 스폰할 몬스터 수
-  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-  int32 SpawnCount = 0;
+		// 몇 번째 스폰에서 생성할지
+		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+		int32 SpawnIndex = 0;
+	};
 
-  // 몇 번째 스폰에서 생성할지
-  UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-  int32 SpawnIndex = 0;
-};
+	UCLASS()
+	class DREAMPROTECTOR_API AWaveManager2 : public AActor
+	{
+		GENERATED_BODY()
 
-UCLASS()
-class DREAMPROTECTOR_API AWaveManager2 : public AActor
-{
-  GENERATED_BODY()
-
-  public:
+	public:
 		AWaveManager2();
 		// 2-2 몬스터가 죽었을 때 호출
 		void OnPhase2MonsterKilled();
@@ -88,7 +93,7 @@ class DREAMPROTECTOR_API AWaveManager2 : public AActor
 
 		// 현재 2-2 스폰 차수
 		int32 CurrentPhase2SpawnIndex = 0;
-
+		int32 Phase1TotalMonsterCount = 0;
 		void StartPhase1();
 		void StartPhase2();
 		void StartPreparation();
@@ -107,6 +112,7 @@ class DREAMPROTECTOR_API AWaveManager2 : public AActor
 	// HUD에 카운트다운 시작을 알리는 함수
 	void NotifyPhase1Countdown();
 	void NotifyPhase2Countdown();
+	int32 Phase1RemainingMonsterCount = 0;
 
 		// 2-2 몬스터 스폰
 		void SpawnPhase2Monsters();
@@ -167,11 +173,6 @@ class DREAMPROTECTOR_API AWaveManager2 : public AActor
 		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 		TObjectPtr<USoundBase> PreparationBGM;
 
-		UPROPERTY()
-		TObjectPtr<AElevator> SpawnedElevator;
-
-
-
 	// 보스전 준비 상태로 건너뛰었는지 확인
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2|Debug")
 	bool bSkippedToBossReady = false;
@@ -183,6 +184,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Audio")
 	void ChangeBGM(USoundBase* NewMusic);
 
+	UPROPERTY()
+	TObjectPtr<AElevator> SpawnedElevator;
+
 	UFUNCTION(BlueprintCallable, Category = "Stage 2|Debug")
 	void SkipToBossReady();
+
+	void OnPhase1MonsterKilled();
+	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
+	FOnStage2MonsterCountChanged OnMonsterCountChanged;
+	UFUNCTION(BlueprintCallable, Category = "Stage 2|UI")
+	int32 GetCurrentMonsterCount() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Stage 2|UI")
+	int32 GetCurrentTotalMonsterCount() const;
 };

@@ -150,6 +150,7 @@ public:
 	// 돌진 시 재생 (의자에서 앞으로 살짝 튀어나가는 모션)
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Anim")
 	UAnimMontage* LungeMontage;
+
 	// [테스트용] 트리거 볼륨 완성 전, BeginPlay 몇 초 후 자동으로 등장 씬 실행
 	FTimerHandle TestIntroTimerHandle;
 
@@ -160,6 +161,10 @@ public:
 	// 등장 씬 종료 후, 매 프레임 플레이어 쪽으로 회전하는 속도 (도/초)
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Movement")
 	float FaceTargetRotationSpeed = 180.f;
+
+	// 사망 시 장판 이펙트를 재생할 위치. 레벨의 "BossDeathGround" 태그 액터 위치로 BeginPlay에서 자동 세팅
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Movement")
+	FVector DeathGroundLocation;
 
 	//----------- 애니메이션, 이펙트
 
@@ -180,7 +185,55 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Anim")
 	class USoundBase* HitSound;
 
-	//------------ 공격
+	//------------ 근거리 공격
+
+	// 근접 공격이 발동하는 거리
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	float MeleeAttackRange = 300.f;
+
+	// 근접 공격 시전 애니메이션 (낫 휘두르기)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	UAnimMontage* MeleeAttackMontage;
+
+	// 애니메이션 시작 후, 실제 타격 판정이 일어나기까지의 시간
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	float MeleeAttackCastDelay = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	float MeleeDamage = 15.f;
+
+	// 넉백 세기
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	float MeleeKnockbackForce = 800.f;
+
+	// 근접 공격 시전 (BT 태스크에서 호출). 범위 밖이면 false 반환
+	UFUNCTION(BlueprintCallable, Category = "Boss|Attack")
+	bool TryStartMeleeAttack();
+
+	// 근접 공격 모션이 이미 진행 중인지
+	bool bIsMeleeAttacking = false;
+
+	// 실제 타격 판정 (타이머 콜백용)
+	void ApplyMeleeHit();
+
+	FTimerHandle MeleeAttackTimerHandle;
+
+	FTimerHandle MeleeAttackEndTimerHandle;
+	void EndMeleeAttack();
+
+	// 낫 휘두를 때 재생할 사운드
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	USoundBase* MeleeSwingSound;
+
+	FTimerHandle MeleeSwingSoundTimerHandle;
+
+	// 타격 성공 시 재생할 사운드
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")
+	USoundBase* MeleeHitSound;
+
+	void PlayMeleeSwingSound();
+
+	//------------ 원거리 공격
 
 	// 원거리 공격용 발사체 클래스 (BP_ky_thunderBall 등을 BP_BossMonster에서 지정)
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Attack")

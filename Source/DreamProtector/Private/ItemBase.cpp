@@ -8,11 +8,18 @@ AItemBase::AItemBase()
 
 	PrimaryActorTick.bCanEverTick = false;
 
+	// 아이템의 루트 컴포넌트
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 
+	// 실제 아이템 외형을 보여주는 Static Mesh
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComp"));
 	StaticMeshComp->SetupAttachment(SceneRoot);
+
+	// 아이템 Mesh의 Collision을 완전히 비활성화한다 플레이어, 몬스터, 발사체 등을 물리적으로 막지 않음
+	StaticMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	StaticMeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	StaticMeshComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 }
 
 
