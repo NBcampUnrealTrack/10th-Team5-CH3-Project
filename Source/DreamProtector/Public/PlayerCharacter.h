@@ -29,11 +29,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDied);
 
-// 상호작용 UI 표시 여부 전달
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnInteractionChanged,
 	bool,
-	bCanInteract
+	bCanInteract,
+	FText,
+	InteractionText
 );
 
 UENUM(BlueprintType)

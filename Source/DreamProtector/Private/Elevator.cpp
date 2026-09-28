@@ -24,11 +24,18 @@ AElevator::AElevator()
 	ElevatorCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ElevatorCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ElevatorCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	ElevatorCollision->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 }
 
 void AElevator::Interact(AActor* Interactor)
 {
-	//상호작용한 Actor가 플레이어인지 확인 
+	// 이미 한 번 작동한 엘리베이터면 다시 사용 불가
+	if (bActivated)
+	{
+		return;
+	}
+
+	// 상호작용한 Actor가 플레이어인지 확인
 	APlayerCharacter* Player = Cast<APlayerCharacter>(Interactor);
 
 	if (!Player)
@@ -36,14 +43,16 @@ void AElevator::Interact(AActor* Interactor)
 		return;
 	}
 
-	//이미 이동예약이거나 이동중이면 추가 조작X
-	if (bIsMoving || GetWorldTimerManager().IsTimerActive(ElevatorMoveTimerHandle))
+	// 이미 이동 예약 중이거나 이동 중이면 사용 불가
+	if (bIsMoving ||
+		GetWorldTimerManager().IsTimerActive(ElevatorMoveTimerHandle))
 	{
 		return;
 	}
 
-	//플레이어가 가지고 있는 InventoryComponent 찾기
-	UInventoryComponent* Inventory = Player->FindComponentByClass<UInventoryComponent>();
+	// 플레이어의 인벤토리 찾기
+	UInventoryComponent* Inventory =
+		Player->FindComponentByClass<UInventoryComponent>();
 
 	if (!Inventory)
 	{
@@ -52,19 +61,22 @@ void AElevator::Interact(AActor* Interactor)
 
 	const FName BossKey(TEXT("BossKey"));
 
-	//보스키 가지고 있는지 확인
+	// 보스 열쇠가 없으면 작동하지 않음
 	if (!Inventory->HasEnoughItem(BossKey, 1))
 	{
 		return;
 	}
 
-	//보스키 제거
+	// 보스 열쇠 1개 사용
 	if (!Inventory->RemoveItems(BossKey, 1))
 	{
 		return;
 	}
 
-	//엘리베이터 작동
+	// ★ 여기서부터 엘리베이터 사용 완료 상태
+	bActivated = true;
+
+	// 엘리베이터 작동
 	MoveUp();
 }
 

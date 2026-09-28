@@ -26,7 +26,7 @@ public:
 
 	// 5초 대기가 끝난 뒤 실제 이동을 시작한다.
 	void StartElevatorMovement();
-
+	bool IsActivated() const { return bActivated; }
 	virtual void Tick(float DeltaTime) override;
 protected:
 
@@ -48,4 +48,7 @@ protected:
 	float ElevatorMoveSpeed = 500.0f;
 
 	virtual void BeginPlay() override;
+
+private:
+	bool bActivated = false;
 };

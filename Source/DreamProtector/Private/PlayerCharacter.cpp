@@ -16,6 +16,8 @@
 #include "WindupBomb.h"
 #include "Barricade.h"
 #include "Bed.h"
+#include "Elevator.h"
+#include "ItemBase.h"
 
 #include "GameFrameWork/SpringArmComponent.h"
 
@@ -1123,6 +1125,7 @@ void APlayerCharacter::CheckInteractable()
 {
 	//상호작용 탐색 거리
 	const float InteractionDistance = 500.0f;
+
 	//상호작용 탐색 범위
 	const float InteractionRadius = 120.0f;
 
@@ -1130,12 +1133,15 @@ void APlayerCharacter::CheckInteractable()
 	const FVector Start = GetActorLocation();
 
 	//플레이어가 바라보는 방향으로 500 만큼 앞
-	const FVector End = Start + GetActorForwardVector() * InteractionDistance;
+	const FVector End =
+		Start + GetActorForwardVector() * InteractionDistance;
 
 	//Sweep 결과 저장
 	FHitResult HitResult;
+
 	//충돌 검사 조건
 	FCollisionQueryParams Params;
+
 	//자기 자신은 검사 대상에서 제외
 	Params.AddIgnoredActor(this);
 
@@ -1149,19 +1155,47 @@ void APlayerCharacter::CheckInteractable()
 		Params
 	);
 
-	//상호작용 가능한 Actor인지 확인
 	bool bCanInteract = false;
+	FText InteractionText = FText::GetEmpty();
 
 	if (bHit)
 	{
 		AActor* HitActor = HitResult.GetActor();
 
-		//감지된 Actor가 IInteractable 인터페이스를 구현하고 있다면 상호작용 가능한 상태
 		if (HitActor && HitActor->Implements<UInteractable>())
 		{
-			bCanInteract = true;
+			// 엘리베이터
+			if (AElevator* Elevator = Cast<AElevator>(HitActor))
+			{
+				// 이미 사용한 엘리베이터면 아무것도 하지 않음
+				if (!Elevator->IsActivated())
+				{
+					bCanInteract = true;
+					InteractionText =
+						FText::FromString(TEXT("를 눌러 작동"));
+				}
+			}
+
+			// 아이템
+			else if (HitActor->IsA<AItemBase>())
+			{
+				bCanInteract = true;
+				InteractionText =
+					FText::FromString(TEXT("를 눌러 획득"));
+			}
+
+			// 그 외 상호작용 오브젝트
+			else
+			{
+				bCanInteract = true;
+				InteractionText =
+					FText::FromString(TEXT("를 눌러 상호작용"));
+			}
 		}
 	}
-	//HUD에게 현재 상호작용 가능 여부 전달
-	OnInteractionChanged.Broadcast(bCanInteract);
+
+	OnInteractionChanged.Broadcast(
+		bCanInteract,
+		InteractionText
+	);
 }
