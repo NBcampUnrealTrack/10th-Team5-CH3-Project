@@ -7,24 +7,23 @@ AElevator::AElevator()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 엘리베이터 메쉬 컴포넌트 생성
+	// Root 생성
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
+
+	// 엘리베이터 메쉬
 	ElevatorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ElevatorMesh"));
+	ElevatorMesh->SetupAttachment(SceneRoot);
 
-	// 엘리베이터 메쉬를 루트 컴포넌트로 설정
-	RootComponent = ElevatorMesh;
-
-	// 플레이어가 엘리베이터에 올라왔는지 감지하는 영역
+	// 충돌 영역
 	ElevatorCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("ElevatorCollision"));
-	ElevatorCollision->SetupAttachment(RootComponent);
+	ElevatorCollision->SetupAttachment(SceneRoot);
 
-	// 엘리베이터 바닥보다 조금 넓은 감지 영역
 	ElevatorCollision->SetBoxExtent(FVector(500.0f, 500.0f, 300.0f));
 
-	// 플레이어가 들어오면 Overlap 이벤트 발생
 	ElevatorCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	ElevatorCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ElevatorCollision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-
 }
 
 void AElevator::Interact(AActor* Interactor)
