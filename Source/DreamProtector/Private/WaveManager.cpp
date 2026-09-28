@@ -80,73 +80,80 @@ void AWaveManager::UpdateCurrentMonsterCount()
 
 void AWaveManager::SpawnCurrentWave()
 {
-    // 현재 웨이브 데이터 가져오기
     const FWaveData* WaveData = GetCurrentWaveData();
-
-    // 웨이브 데이터 없으면 종료하는 if문
     if (!WaveData)
     {
         return;
     }
 
-    //  새 웨이브 시작이므로 처치 수 초기화
+    WaveMonsters.Reset();
+    CurrentMonsterCount = 0;
     KilledMonsterCount = 0;
-    //  현재 웨이브의 총 몬스터 수 다시 계산
-    UpdateCurrentMonsterCount();
+    bCleaningUpWave = false;
 
-    // HUD에 새 웨이브 몬스터 수 전달
-    OnMonsterCountChanged.Broadcast(
-        CurrentMonsterCount,
-        CurrentMonsterCount
+    const int32 UsableVolumeCount = FMath::Min(
+        WaveData->SpawnVolumeCount,
+        SpawnVolumes.Num()
     );
 
-    // 현재 웨이브 몬스터 종류 하나씩 확인하기
+    if (UsableVolumeCount <= 0)
+    {
+        OnMonsterCountChanged.Broadcast(0, 0);
+        return;
+    }
+
     for (const FWaveMonsterData& MonsterData : WaveData->Monsters)
     {
-        //몬스터 클래스가 지정되지 않았다면 스킵/.의 의미는 MonsterData 안에 있는 SpawnCount를 가져온다.
         if (!MonsterData.MonsterClass)
         {
             continue;
         }
 
-        //설정된 몬스터 수만큼 반복 스폰시키기
         for (int32 i = 0; i < MonsterData.SpawnCount; ++i)
         {
-            //사용할 스폰볼륨이 없다면 종료
-            if (SpawnVolumes.Num() == 0)
-            {
-                return;
-            }
+            ASpawnVolume* SpawnVolume =
+                SpawnVolumes[i % UsableVolumeCount];
 
-            // 현재 웨이브에서 사용할 스폰볼륨에 몬스터 골고루 분배하기
-            ASpawnVolume* SpawnVolume = SpawnVolumes[i % WaveData->SpawnVolumeCount];
-
-            // 스폰볼륨이 없으면 해당 스폰 스킵
-            if (!SpawnVolume)
+            if (!IsValid(SpawnVolume))
             {
                 continue;
             }
 
-            // 스폰볼륨에서 랜덤한 스폰 위치 가져오기
-            const FVector SpawnLocation = SpawnVolume->GetRandomSpawnLocation();
+            const FVector SpawnLocation =
+                SpawnVolume->GetRandomSpawnLocation();
 
-            // 몬스터 스폰하기, 몬수터 이동속도 랜덤값 적용
-            ABaseMonster* SpawnedMonster = GetWorld()->SpawnActor<ABaseMonster>(
-                MonsterData.MonsterClass,
-                SpawnLocation,
-                FRotator::ZeroRotator
+            ABaseMonster* SpawnedMonster =
+                GetWorld()->SpawnActor<ABaseMonster>(
+                    MonsterData.MonsterClass,
+                    SpawnLocation,
+                    FRotator::ZeroRotator
+                );
+
+            if (!IsValid(SpawnedMonster))
+            {
+                continue;
+            }
+
+            WaveMonsters.Add(SpawnedMonster);
+            ++CurrentMonsterCount;
+
+            SpawnedMonster->OnDestroyed.AddDynamic(
+                this,
+                &AWaveManager::HandleWaveMonsterDestroyed
             );
 
-            if (SpawnedMonster)
-            {
-                SpawnedMonster->SetMoveSpeed(FMath::FRandRange(200.0f, 500.0f));
-
-                UE_LOG(LogTemp, Warning, TEXT("AFTER RANDOM Speed: %f"), SpawnedMonster->MoveSpeed);
-            }
+            SpawnedMonster->SetMoveSpeed(
+                FMath::FRandRange(200.0f, 500.0f)
+            );
         }
-
     }
+
+    OnMonsterCountChanged.Broadcast(
+        CurrentMonsterCount,
+        CurrentMonsterCount
+    );
 }
+
 void AWaveManager::BeginPlay()
 {
     Super::BeginPlay();
@@ -208,21 +215,43 @@ void AWaveManager::OnWaveTimeExpired()
         CurrentWave
     );
 
-    // 현재 웨이브의 남은 악몽 수 계산
-    const int32 RemainingCount =
-        FMath::Max(CurrentMonsterCount - KilledMonsterCount, 0);
+    // 일괄 정리 중에는 개별 삭제로 카운트를 줄이지 않음
+    bCleaningUpWave = true;
 
-    // 남은 악몽 1마리당 침대 스트레스 10 증가
-    if (Bed && RemainingCount > 0)
+    // 실제로 남아 있는 이번 웨이브 몬스터 수를 셈
+    int32 RemainingCount = 0;
+
+    for (const TObjectPtr<ABaseMonster>& Monster : WaveMonsters)
+    {
+        if (IsValid(Monster.Get()))
+        {
+            ++RemainingCount;
+        }
+    }
+
+    // 남은 몬스터 한 마리당 스트레스 +10
+    if (IsValid(Bed.Get()) && RemainingCount > 0)
     {
         Bed->IncreaseStress(RemainingCount * 10);
     }
 
-    // HUD의 남은 악몽 수를 0으로 표시
-    OnMonsterCountChanged.Broadcast(
-        0,
-        0
-    );
+    // 남은 몬스터를 실제로 삭제
+    // Die를 호출하지 않으므로 정리 과정에서 아이템을 드롭하지 않음
+    for (const TObjectPtr<ABaseMonster>& Monster : WaveMonsters)
+    {
+        if (IsValid(Monster.Get()))
+        {
+            Monster->Destroy();
+        }
+    }
+
+    WaveMonsters.Reset();
+
+    // 화면 표시뿐 아니라 내부 숫자도 정리
+    CurrentMonsterCount = 0;
+    KilledMonsterCount = 0;
+
+    OnMonsterCountChanged.Broadcast(0, 0);
 
     // 마지막 웨이브라면 다음 준비시간과 카운트다운을 예약하지 않음
     if (CurrentWave >= MaxWave)
@@ -268,7 +297,6 @@ void AWaveManager::StartFirstWave()
     ChangeBGM(BattleBGM);
     ChangeWaveLightColor(BattleLightColor);
 
-    UpdateCurrentMonsterCount();
     // Wave 1 몬스터 스폰
     SpawnCurrentWave();
 
@@ -296,7 +324,6 @@ void AWaveManager::StartNextWave()
     ChangeBGM(BattleBGM);
     ChangeWaveLightColor(BattleLightColor);
 
-    UpdateCurrentMonsterCount();
     // 다음 웨이브 몬스터 스폰
     SpawnCurrentWave();
 
@@ -372,5 +399,32 @@ void AWaveManager::ChangeWaveLightColor(const FLinearColor& NewColor)
     if (LightComponent)
     {
         LightComponent->SetLightColor(NewColor, false);
+    }
+}
+
+void AWaveManager::HandleWaveMonsterDestroyed(AActor* DestroyedActor)
+{
+    NotifyMonsterRemoved(Cast<ABaseMonster>(DestroyedActor));
+}
+
+void AWaveManager::NotifyMonsterRemoved(ABaseMonster* Monster)
+{
+    if (bCleaningUpWave || !Monster)
+    {
+        return;
+    }
+
+    // 목록에 있는 몬스터만 제거하고 카운트
+    // 이미 사망 처리했다면 목록에 없으므로 중복 집계하지 않음
+    const int32 RemovedCount = WaveMonsters.RemoveAll(
+        [Monster](const TObjectPtr<ABaseMonster>& Entry)
+        {
+            return Entry.Get() == Monster;
+        }
+    );
+
+    if (RemovedCount > 0)
+    {
+        OnMonsterKilled();
     }
 }
