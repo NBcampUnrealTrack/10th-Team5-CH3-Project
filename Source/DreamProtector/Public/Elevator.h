@@ -30,11 +30,12 @@ public:
 	virtual void Tick(float DeltaTime) override;
 protected:
 
-	// 엘리베이터 바닥
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Elevator")
-	TObjectPtr<class UStaticMeshComponent> ElevatorMesh;
+	TObjectPtr<USceneComponent> SceneRoot;
 
-	// 플레이어가 엘리베이터에 올라왔는지 감지
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Elevator")
+	TObjectPtr<UStaticMeshComponent> ElevatorMesh;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Elevator")
 	TObjectPtr<UBoxComponent> ElevatorCollision;
 	// 이동 시작 위치

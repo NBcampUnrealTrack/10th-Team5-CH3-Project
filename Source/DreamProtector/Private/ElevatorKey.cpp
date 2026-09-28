@@ -5,7 +5,7 @@
 
 AElevatorKey::AElevatorKey()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	KeyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("KeyMesh"));
 	RootComponent = KeyMesh;
@@ -75,4 +75,32 @@ void AElevatorKey::OnKeyOverlap(
 	);
 
 	Destroy();
+}
+
+void AElevatorKey::BeginPlay()
+{
+	Super::BeginPlay();
+
+	StartLocation = GetActorLocation();
+}
+
+void AElevatorKey::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	RunningTime += DeltaTime;
+
+	// 처음 위치를 기준으로 부드럽게 위아래 이동
+	FVector NewLocation = StartLocation;
+
+	NewLocation.Z += FMath::Sin(
+		RunningTime * FloatFrequency * 2.0f * PI
+	) * FloatHeight;
+
+	SetActorLocation(NewLocation);
+
+	// 수직축을 중심으로 회전
+	AddActorLocalRotation(
+		FRotator(0.0f, RotationSpeed * DeltaTime, 0.0f)
+	);
 }
