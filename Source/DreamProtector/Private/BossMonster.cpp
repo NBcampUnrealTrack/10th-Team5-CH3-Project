@@ -7,6 +7,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "Particles/ParticleSystem.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -190,6 +194,17 @@ void ABossMonster::HandleDeath()
 
 	bIsDead = true;
 	bIsInvincible = true;
+
+	// 2페이즈 장판 정리 (예고 마법진 제거 + 폭발 타이머 취소)
+	GetWorldTimerManager().ClearTimer(GroundBlastTimerHandle);
+	for (UNiagaraComponent* W : PendingBlastWarnings)
+	{
+		if (W)
+		{
+			W->DestroyComponent();
+		}
+	}
+	PendingBlastWarnings.Reset();
 
 	if (AAIController* AIController = Cast<AAIController>(GetController()))
 	{
@@ -666,6 +681,98 @@ void ABossMonster::PlayMeleeSwingSound()
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, MeleeSwingSound, GetActorLocation());
 	}
+}
+
+bool ABossMonster::StartGroundBlast()
+{
+	if (bIsGroundBlasting || bIsDead)
+	{
+		return false;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return false;
+	}
+
+	bIsGroundBlasting = true;
+	PendingBlastLocations.Reset();
+	PendingBlastWarnings.Reset();
+
+	const FVector PlayerLoc = PlayerPawn->GetActorLocation();
+
+	// 첫 장판은 플레이어 발밑, 나머지는 주변 랜덤
+	for (int32 i = 0; i < GroundBlastCount; ++i)
+	{
+		FVector Loc = PlayerLoc;
+		if (i > 0)
+		{
+			const float Angle = FMath::FRandRange(0.f, 360.f);
+			const float Dist = FMath::FRandRange(GroundBlastRadius, GroundBlastSpreadRadius);
+			Loc += FVector(FMath::Cos(FMath::DegreesToRadians(Angle)) * Dist,
+				FMath::Sin(FMath::DegreesToRadians(Angle)) * Dist, 0.f);
+		}
+
+		// 바닥 높이로 맞추기 (레이저 높이 타겟 포인트의 Z를 재활용)
+		Loc.Z = DeathGroundLocation.Z;
+
+		PendingBlastLocations.Add(Loc);
+
+		if (GroundBlastWarningFX)
+		{
+			UNiagaraComponent* Warning = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(), GroundBlastWarningFX, Loc, FRotator::ZeroRotator, GroundBlastWarningScale);
+			PendingBlastWarnings.Add(Warning);
+		}
+	}
+
+	GetWorldTimerManager().SetTimer(GroundBlastTimerHandle, this, &ABossMonster::ExplodeGroundBlast, GroundBlastDelay, false);
+	return true;
+}
+
+void ABossMonster::ExplodeGroundBlast()
+{
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+
+	for (int32 i = 0; i < PendingBlastLocations.Num(); ++i)
+	{
+		const FVector& Loc = PendingBlastLocations[i];
+
+		// 경고 마법진 제거
+		if (PendingBlastWarnings.IsValidIndex(i) && PendingBlastWarnings[i])
+		{
+			PendingBlastWarnings[i]->DestroyComponent();
+		}
+
+		// 폭발 이펙트 + 사운드
+		if (GroundBlastExplosionFX)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GroundBlastExplosionFX,
+				Loc, FRotator::ZeroRotator, GroundBlastExplosionScale);
+		}
+		if (GroundBlastExplosionSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, GroundBlastExplosionSound, Loc);
+		}
+
+		// 판정: 수평 거리만 비교 (플레이어 높이 차이는 무시)
+		if (PlayerPawn)
+		{
+			const FVector P = PlayerPawn->GetActorLocation();
+			if (FVector::Dist2D(P, Loc) <= GroundBlastRadius)
+			{
+				if (APlayerCharacter* Player = Cast<APlayerCharacter>(PlayerPawn))
+				{
+					Player->TakeDamageFromEnemy(GroundBlastDamage);
+				}
+			}
+		}
+	}
+
+	PendingBlastLocations.Reset();
+	PendingBlastWarnings.Reset();
+	bIsGroundBlasting = false;
 }
 
 void ABossMonster::StartLaserPhase()
