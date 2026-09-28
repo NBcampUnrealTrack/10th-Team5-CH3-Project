@@ -1,9 +1,9 @@
-	#pragma once
+#pragma once
 
-	#include "CoreMinimal.h"
-	#include "GameFramework/Actor.h"
-	#include "ItemBase.h"
-	#include "WaveManager2.generated.h"
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "ItemBase.h"
+#include "WaveManager2.generated.h"
 
 
 // HUD에 카운트다운 시작과 웨이브 번호를 전달하는 이벤트
@@ -11,94 +11,105 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnStage2WaveCountdownStarted,
 	int32, WaveNumber
 );
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOnStage2MonsterCountChanged,
-	int32, RemainingCount,
-	int32, TotalCount
+	int32, RemainingCount, int32, TotalCount
 );
-	class ASpawnVolume;
-	class ABaseMonster;
-	class AElevator;
-	class AElevatorKey;
-	class UAudioComponent;
-	class USoundBase;
-	class AItemBase;
 
-	USTRUCT(BlueprintType)
-	struct FPhase2SpawnData
-	{
-		GENERATED_BODY()
+class ASpawnVolume;
+class ABaseMonster;
+class AElevator;
+class AElevatorKey;
+class UAudioComponent;
+class USoundBase;
+class AItemBase;
 
-		// 어떤 SpawnVolume에서 스폰할지
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		TObjectPtr<ASpawnVolume> SpawnVolume;
 
-		// 스폰할 몬스터 종류
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		TSubclassOf<ABaseMonster> MonsterClass;
+USTRUCT(BlueprintType)
+struct FPhase2SpawnData
+{
+	GENERATED_BODY()
 
-		// 스폰할 몬스터 수
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		int32 SpawnCount = 0;
+	// 어떤 SpawnVolume에서 스폰할지
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+	TObjectPtr<ASpawnVolume> SpawnVolume;
 
-		// 몇 번째 스폰에서 생성할지
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-		int32 SpawnIndex = 0;
-	};
+	// 스폰할 몬스터 종류
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+	TSubclassOf<ABaseMonster> MonsterClass;
 
-	UCLASS()
-	class DREAMPROTECTOR_API AWaveManager2 : public AActor
-	{
-		GENERATED_BODY()
+	// 스폰할 몬스터 수
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+	int32 SpawnCount = 0;
 
-	public:
-		AWaveManager2();
-		// 2-2 몬스터가 죽었을 때 호출
-		void OnPhase2MonsterKilled();
+	// 몇 번째 스폰에서 생성할지
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
+	int32 SpawnIndex = 0;
+};
+
+
+UCLASS()
+class DREAMPROTECTOR_API AWaveManager2 : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	AWaveManager2();
+
+	// 2-2 몬스터가 죽었을 때 호출
+	void OnPhase2MonsterKilled();
 
 	// 블루프린트에서 연결할 수 있는 카운트다운 시작 알림
 	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
 	FOnStage2WaveCountdownStarted OnWaveCountdownStarted;
 
-  protected:
-	  virtual void BeginPlay() override;
 
-		// Stage 2 시작 후 경과 시간(초)
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
-		float StageElapsedTime = 0.0f;
+protected:
+	virtual void BeginPlay() override;
 
-		// 각 시간 이벤트가 실행됐는지 확인
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
-		bool bPhase1Started = false;
+	// Stage 2 시작 후 경과 시간(초)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
+	float StageElapsedTime = 0.0f;
 
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
-		bool bPhase2Started = false;
+	// 각 시간 이벤트가 실행됐는지 확인
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
+	bool bPhase1Started = false;
 
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
-		bool bElevatorSpawned = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
+	bool bPhase2Started = false;
 
-		// Stage 2에서 사용할 스폰볼륨 목록
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
-		TArray<TObjectPtr<ASpawnVolume>> SpawnVolumes;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
+	bool bElevatorSpawned = false;
 
-		// 2-2 몬스터 스폰 설정
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
-		TArray<FPhase2SpawnData> Phase2SpawnData;
+	// Stage 2에서 사용할 스폰볼륨 목록
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
+	TArray<TObjectPtr<ASpawnVolume>> SpawnVolumes;
 
-		// Stage2 시작 후 225초에 생성할 엘리베이터
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
-		TSubclassOf<AElevator> ElevatorClass;
+	// 2-2 몬스터 스폰 설정
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Spawn")
+	TArray<FPhase2SpawnData> Phase2SpawnData;
 
-		// 엘리베이터가 생성될 위치
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
-		FTransform ElevatorSpawnTransform;
+	// Stage2 시작 후 225초에 생성할 엘리베이터
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
+	TSubclassOf<AElevator> ElevatorClass;
 
-		// 현재 2-2 스폰 차수
-		int32 CurrentPhase2SpawnIndex = 0;
-		int32 Phase1TotalMonsterCount = 0;
-		void StartPhase1();
-		void StartPhase2();
-		void StartPreparation();
+	// 엘리베이터가 생성될 위치
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator")
+	FTransform ElevatorSpawnTransform;
+
+	// 현재 2-2 스폰 차수
+	int32 CurrentPhase2SpawnIndex = 0;
+
+	// 2-2의 3차 스폰까지 모두 완료됐는지
+	bool bPhase2AllSpawned = false;
+
+	int32 Phase1TotalMonsterCount = 0;
+
+	void StartPhase1();
+	void StartPhase2();
+	void StartPreparation();
+
 
 	// Stage 2 시간 이벤트를 관리하는 타이머
 	FTimerHandle Phase1TimerHandle;
@@ -107,6 +118,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FTimerHandle GateTimerHandle;
 	FTimerHandle PreparationTimerHandle;
 	FTimerHandle FinalPreparationTimerHandle;
+
 	// 각 전투의 카운트다운 시작을 예약하는 타이머
 	FTimerHandle Phase1CountdownTimerHandle;
 	FTimerHandle Phase2CountdownTimerHandle;
@@ -114,73 +126,80 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	// HUD에 카운트다운 시작을 알리는 함수
 	void NotifyPhase1Countdown();
 	void NotifyPhase2Countdown();
+
 	int32 Phase1RemainingMonsterCount = 0;
 
-		// 2-2 몬스터 스폰
-		void SpawnPhase2Monsters();
 
-		// 2-2 다음 스폰 처리
-		void SpawnNextPhase2Wave();
+	// 2-2 몬스터 스폰
+	void SpawnPhase2Monsters();
 
-		// 2-2 스폰 간격을 관리하는 타이머
-		FTimerHandle Phase2SpawnTimerHandle;
+	// 2-2 다음 스폰 처리
+	void SpawnNextPhase2Wave();
 
-		// 엘리베이터 생성 시점
-		void SpawnElevator();
+	// 2-2 스폰 간격을 관리하는 타이머
+	FTimerHandle Phase2SpawnTimerHandle;
 
-		// 2-2에서 스폰한 몬스터 수
-		int32 Phase2TotalMonsterCount = 0;
+	// 엘리베이터 생성 시점
+	void SpawnElevator();
 
-		// 2-2에서 아직 살아있는 몬스터 수
-		int32 Phase2RemainingMonsterCount = 0;
+	// 2-2에서 스폰한 몬스터 수
+	int32 Phase2TotalMonsterCount = 0;
 
-		// 2-2 클리어 후 생성할 엘리베이터 키, 에디터에서 BP_BossKey를 지정
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Boss Key")
-		TSubclassOf<AItemBase> BossKeyClass;
+	// 2-2에서 아직 살아있는 몬스터 수
+	int32 Phase2RemainingMonsterCount = 0;
 
-		// BossKey가 생성될 위치와 회전값
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Boss Key")
-		FTransform BossKeySpawnTransform;
 
-		// 엘리베이터 키가 이미 생성됐는지
-		bool bElevatorKeySpawned = false;
+	// 2-2 클리어 후 생성할 엘리베이터 키, 에디터에서 BP_BossKey를 지정
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Boss Key")
+	TSubclassOf<AItemBase> BossKeyClass;
 
-		// BossKey 중복 생성을 방지한다.
-		bool bBossKeySpawned = false;
+	// BossKey가 생성될 위치와 회전값
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Boss Key")
+	FTransform BossKeySpawnTransform;
 
-		// 2-2 클리어 후 BossKey 생성
-		void SpawnBossKey();
+	// 엘리베이터 키가 이미 생성됐는지
+	bool bElevatorKeySpawned = false;
 
-		// 90초 후 열릴 대문 블루프린트
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
-		TObjectPtr<AActor> GateActor;
+	// BossKey 중복 생성을 방지한다.
+	bool bBossKeySpawned = false;
 
-		// 오른쪽 대문
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
-		TObjectPtr<AActor> GateActorRight;
+	// 2-2 클리어 후 BossKey 생성
+	void SpawnBossKey();
 
-		// 90초 후 대문 개방
-		void OpenGate();
 
-		// BGM을 재생하는 컴포넌트
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
-		TObjectPtr<UAudioComponent> BGMComponent;
+	// 90초 후 열릴 대문 블루프린트
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
+	TObjectPtr<AActor> GateActor;
 
-		// 튜토리얼 음악
-		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
-		TObjectPtr<USoundBase> TutorialBGM;
+	// 오른쪽 대문
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
+	TObjectPtr<AActor> GateActorRight;
 
-		// 웨이브 전투 음악
-		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
-		TObjectPtr<USoundBase> BattleBGM;
+	// 90초 후 대문 개방
+	void OpenGate();
 
-		// 준비시간 음악
-		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
-		TObjectPtr<USoundBase> PreparationBGM;
+
+	// BGM을 재생하는 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<UAudioComponent> BGMComponent;
+
+	// 튜토리얼 음악
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> TutorialBGM;
+
+	// 웨이브 전투 음악
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> BattleBGM;
+
+	// 준비시간 음악
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> PreparationBGM;
+
 
 	// 보스전 준비 상태로 건너뛰었는지 확인
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2|Debug")
 	bool bSkippedToBossReady = false;
+
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -196,8 +215,10 @@ public:
 	void SkipToBossReady();
 
 	void OnPhase1MonsterKilled();
+
 	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
 	FOnStage2MonsterCountChanged OnMonsterCountChanged;
+
 	UFUNCTION(BlueprintCallable, Category = "Stage 2|UI")
 	int32 GetCurrentMonsterCount() const;
 
