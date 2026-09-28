@@ -6,6 +6,8 @@
 
 class UBehaviorTree;
 class UAnimMontage;
+class UNiagaraSystem;
+class UNiagaraComponent;
 
 UENUM(BlueprintType)
 enum class EBossPhase : uint8
@@ -288,6 +290,58 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Anim")
 	UAnimMontage* Phase2TransitionMontage;
 
+	// 장판 폭발
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	UNiagaraSystem* GroundBlastWarningFX;      // Bottom06-07
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	UParticleSystem* GroundBlastExplosionFX;   // P_ky_explosion
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	USoundBase* GroundBlastExplosionSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	int32 GroundBlastCount = 4;
+
+	// 플레이어 주변 어디까지 장판이 깔릴지 (플레이어 중심 반경)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	float GroundBlastSpreadRadius = 700.f;
+
+	// 폭발 판정 반경
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	float GroundBlastRadius = 300.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	float GroundBlastDamage = 15.f;
+
+	// 장판이 깔리고 폭발하기까지 시간(초)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	float GroundBlastDelay = 5.f;
+
+	// 경고 마법진의 크기 배율 (폭발 반경과 눈으로 맞추세요)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	FVector GroundBlastWarningScale = FVector(1.f, 1.f, 1.f);
+
+	// 폭발 이펙트의 크기 배율
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase2")
+	FVector GroundBlastExplosionScale = FVector(1.f, 1.f, 1.f);
+
+	UPROPERTY()
+	TArray<FVector> PendingBlastLocations;
+
+	UPROPERTY()
+	TArray<UNiagaraComponent*> PendingBlastWarnings;
+
+	FTimerHandle GroundBlastTimerHandle;
+	bool bIsGroundBlasting = false;
+
+	// BT 태스크에서 호출. 이미 진행 중이면 false
+	UFUNCTION(BlueprintCallable, Category = "Boss|Phase2")
+	bool StartGroundBlast();
+
+	void ExplodeGroundBlast();
+
 	//----------- 3페이즈
 
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
@@ -358,6 +412,8 @@ protected:
 	void BeginGrowing();
 
 	void PlayRangedAttackSound();
+
+	// 2페이즈 장판
 
 	// 3페이즈 레이저
 	void StartLaserPhase();
