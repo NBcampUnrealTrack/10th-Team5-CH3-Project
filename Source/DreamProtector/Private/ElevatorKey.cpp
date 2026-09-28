@@ -67,7 +67,6 @@ void AElevatorKey::OnKeyOverlap(
 		return;
 	}
 
-	Elevator->SetHasOperatingKey(true);
 
 	UE_LOG(
 		LogTemp,
