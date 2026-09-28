@@ -2,6 +2,7 @@
 
 	#include "CoreMinimal.h"
 	#include "GameFramework/Actor.h"
+	#include "ItemBase.h"
 	#include "WaveManager2.generated.h"
 
 
@@ -21,6 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	class AElevatorKey;
 	class UAudioComponent;
 	class USoundBase;
+	class AItemBase;
 
 	USTRUCT(BlueprintType)
 	struct FPhase2SpawnData
@@ -132,19 +134,22 @@ protected:
 		// 2-2에서 아직 살아있는 몬스터 수
 		int32 Phase2RemainingMonsterCount = 0;
 
-		// 2-2 클리어 후 생성할 엘리베이터 키
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator Key")
-		TSubclassOf<AElevatorKey> ElevatorKeyClass;
+		// 2-2 클리어 후 생성할 엘리베이터 키, 에디터에서 BP_BossKey를 지정
+		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Boss Key")
+		TSubclassOf<AItemBase> BossKeyClass;
 
-		// 엘리베이터 키가 생성될 위치
-		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Elevator Key")
-		FTransform ElevatorKeySpawnTransform;
+		// BossKey가 생성될 위치와 회전값
+		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Boss Key")
+		FTransform BossKeySpawnTransform;
 
 		// 엘리베이터 키가 이미 생성됐는지
 		bool bElevatorKeySpawned = false;
 
-		// 2-2 클리어 후 엘리베이터 키 생성
-		void SpawnElevatorKey();
+		// BossKey 중복 생성을 방지한다.
+		bool bBossKeySpawned = false;
+
+		// 2-2 클리어 후 BossKey 생성
+		void SpawnBossKey();
 
 		// 90초 후 열릴 대문 블루프린트
 		UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Stage 2|Gate")
