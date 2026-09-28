@@ -288,56 +288,48 @@ void AWaveManager2::OnPhase2MonsterKilled()
 		SpawnElevator();
 
 		// 엘리베이터 열쇠 생성
-		SpawnElevatorKey();
+		SpawnBossKey();
 
 		// 전투 종료 후 준비 BGM
 		ChangeBGM(PreparationBGM);
 	}
 }
 
-void AWaveManager2::SpawnElevatorKey()
+void AWaveManager2::SpawnBossKey()
 {
-	if (bElevatorKeySpawned)
+	// 이미 BossKey가 생성되었다면 중복 생성하지 않는다.
+	if (bBossKeySpawned)
 	{
 		return;
 	}
 
-	if (!ElevatorKeyClass)
+	// 에디터에서 BP_BossKey 클래스가 지정되지 않았다면 생성하지 않는다.
+	if (!BossKeyClass)
 	{
 		UE_LOG(
 			LogTemp,
 			Error,
-			TEXT("ElevatorKeyClass is not set.")
+			TEXT("BossKeyClass is not set.")
 		);
+
 		return;
 	}
 
-	if (!SpawnedElevator)
+	// 월드에 BP_BossKey 생성
+	AItemBase* SpawnedBossKey = GetWorld()->SpawnActor<AItemBase>(
+		BossKeyClass,
+		BossKeySpawnTransform
+	);
+
+	// 생성에 성공했는지 확인
+	if (SpawnedBossKey)
 	{
-		UE_LOG(
-			LogTemp,
-			Error,
-			TEXT("SpawnedElevator is invalid.")
-		);
-		return;
-	}
-
-	AElevatorKey* SpawnedKey =
-		GetWorld()->SpawnActor<AElevatorKey>(
-			ElevatorKeyClass,
-			ElevatorKeySpawnTransform
-		);
-
-	if (SpawnedKey)
-	{
-		SpawnedKey->SetElevator(SpawnedElevator);
-
-		bElevatorKeySpawned = true;
+		bBossKeySpawned = true;
 
 		UE_LOG(
 			LogTemp,
 			Warning,
-			TEXT("===== ELEVATOR KEY SPAWN =====")
+			TEXT("===== BOSS KEY SPAWNED =====")
 		);
 	}
 }
@@ -455,7 +447,7 @@ void AWaveManager2::SkipToBossReady()
     // 통로와 다음 구간에 필요한 액터를 준비합니다.
     OpenGate();
     SpawnElevator();
-    SpawnElevatorKey();
+		SpawnBossKey();
 
     // 보스 트리거에 들어가기 전까지 준비 음악을 재생합니다.
     ChangeBGM(PreparationBGM);
