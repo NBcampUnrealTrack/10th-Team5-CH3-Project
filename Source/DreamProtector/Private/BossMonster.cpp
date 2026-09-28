@@ -1,10 +1,12 @@
 ﻿#include "BossMonster.h"
 #include "AIController.h"
+#include "PlayerCharacter.h"
 #include "BrainComponent.h"
 #include "BossAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -53,6 +55,18 @@ void ABossMonster::BeginPlay()
 	else
 	{
 		DeathGroundLocation = GetActorLocation();
+	}
+
+	TArray<AActor*> LaserGroundActors;
+	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName(TEXT("BossLaserGround")), LaserGroundActors);
+	if (LaserGroundActors.Num() > 0)
+	{
+		LaserGroundLocation = LaserGroundActors[0]->GetActorLocation();
+	}
+	else
+	{
+		// 못 찾으면 사망 이펙트 바닥 위치 + 100으로 폴백
+		LaserGroundLocation = DeathGroundLocation + FVector(0.f, 0.f, 100.f);
 	}
 
 	OnBossHealthChanged.Broadcast(CurrentHealth, MaxHealth);
@@ -119,19 +133,29 @@ void ABossMonster::CheckPhaseTransition()
 void ABossMonster::StartPhaseTransition(EBossPhase NewPhase)
 {
 	bIsInvincible = true;
+	PendingPhase = NewPhase;
 
-	// AI를 멈추고 싶다면 여기서 AIController->GetBrainComponent()->StopLogic() 호출 고려
+	// 페이즈별 전환 몽타주 선택 (슬롯이 비어 있으면 연출 없이 바로 전환)
+	UAnimMontage* TransitionMontage = nullptr;
+	if (NewPhase == EBossPhase::Phase2)
+	{
+		TransitionMontage = Phase2TransitionMontage;
+	}
+	else if (NewPhase == EBossPhase::Phase3)
+	{
+		TransitionMontage = Phase3TransitionMontage;
+	}
 
-	if (PhaseTransitionMontage)
+	if (TransitionMontage)
 	{
 		UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 		if (AnimInstance)
 		{
-			AnimInstance->Montage_Play(PhaseTransitionMontage);
+			AnimInstance->Montage_Play(TransitionMontage);
 
 			FOnMontageEnded EndDelegate;
 			EndDelegate.BindUObject(this, &ABossMonster::OnPhaseTransitionMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate, PhaseTransitionMontage);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, TransitionMontage);
 			return;
 		}
 	}
@@ -148,6 +172,16 @@ void ABossMonster::OnPhaseTransitionMontageEnded(UAnimMontage* Montage, bool bIn
 {
 	bIsInvincible = false;
 	// AI 재개하려면 여기서 StartLogic() 호출
+
+	CurrentPhase = PendingPhase;
+	OnBossPhaseChanged.Broadcast(CurrentPhase);
+	UpdatePhaseInBlackboard();
+
+	// 3페이즈 진입 시 회전 레이저 시작
+	if (CurrentPhase == EBossPhase::Phase3)
+	{
+		StartLaserPhase();
+	}
 }
 
 void ABossMonster::HandleDeath()
@@ -228,15 +262,6 @@ void ABossMonster::UpdatePhaseInBlackboard()
 void ABossMonster::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White,
-			FString::Printf(TEXT("bIntroFinished=%s | State=%d | Time=%.2f"),
-				bIntroFinished ? TEXT("TRUE") : TEXT("false"),
-				(int32)CurrentIntroState,
-				GetWorld()->GetTimeSeconds()));
-	}
 
 	if (bIsGrowing && GetMesh())
 	{
@@ -360,6 +385,21 @@ void ABossMonster::Tick(float DeltaTime)
 			const FRotator NewRot = FMath::RInterpConstantTo(GetActorRotation(), TargetRot, DeltaTime, FaceTargetRotationSpeed);
 			SetActorRotation(NewRot);
 		}
+	}
+
+	if (bLaserActive && LaserPivot)
+	{
+		LaserPivot->AddLocalRotation(FRotator(0.f, LaserRotationSpeed * DeltaTime, 0.f));
+	}
+
+	if (bLaserActive && LaserPivot)
+	{
+		LaserPivot->SetWorldLocation(FVector(
+			GetActorLocation().X,
+			GetActorLocation().Y,
+			LaserGroundLocation.Z));
+
+		LaserPivot->AddLocalRotation(FRotator(0.f, LaserRotationSpeed * DeltaTime, 0.f));
 	}
 }
 
@@ -517,6 +557,9 @@ void ABossMonster::SpawnRangedProjectile()
 		+ GetActorForwardVector() * RangedSpawnForwardOffset
 		+ FVector(0.f, 0.f, RangedSpawnUpOffset);
 
+	// 0.3초 정도 플레이어를 앞서는 위치에 공격
+	const FVector PredictedTarget = PlayerPawn->GetActorLocation()
+		+ PlayerPawn->GetVelocity() * 0.3f;
 	const FVector ToPlayer = PlayerPawn->GetActorLocation() - SpawnLocation;
 	const FRotator SpawnRotation = ToPlayer.Rotation();
 
@@ -585,7 +628,11 @@ void ABossMonster::ApplyMeleeHit()
 		return;
 	}
 
-	UGameplayStatics::ApplyDamage(PlayerPawn, MeleeDamage, nullptr, this, nullptr);
+	// UGameplayStatics::ApplyDamage(PlayerPawn, MeleeDamage, nullptr, this, nullptr);
+	if (APlayerCharacter* Player = Cast<APlayerCharacter>(PlayerPawn))
+	{
+		Player->TakeDamageFromEnemy(MeleeDamage);
+	}
 
 	// 타격 성공 시 사운드 재생
 	if (MeleeHitSound)
@@ -619,4 +666,100 @@ void ABossMonster::PlayMeleeSwingSound()
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, MeleeSwingSound, GetActorLocation());
 	}
+}
+
+void ABossMonster::StartLaserPhase()
+{
+	if (bLaserActive)
+	{
+		return;
+	}
+	bLaserActive = true;
+
+	// 회전 중심(Pivot)을 보스에 붙임 - 보스 위치를 그대로 따라감
+	LaserPivot = NewObject<USceneComponent>(this, TEXT("LaserPivot"));
+	LaserPivot->SetupAttachment(RootComponent);
+	LaserPivot->RegisterComponent();
+	
+	// 보스의 위치/회전/스케일을 물려받지 않게 하고, 레이저 높이에 고정
+	LaserPivot->SetAbsolute(true, true, true);
+	LaserPivot->SetWorldLocation(FVector(
+		GetActorLocation().X,
+		GetActorLocation().Y,
+		LaserGroundLocation.Z));
+	LaserPivot->SetWorldRotation(FRotator::ZeroRotator);
+
+	// 4방향(0/90/180/270도)으로 빔 4개 생성
+	for (int32 i = 0; i < 4; ++i)
+	{
+		const float Yaw = 90.f * i;
+
+		UBoxComponent* Beam = NewObject<UBoxComponent>(this, *FString::Printf(TEXT("LaserBeam_%d"), i));
+		Beam->SetupAttachment(LaserPivot);
+		Beam->RegisterComponent();
+		Beam->SetBoxExtent(FVector(LaserLength * 0.5f, LaserThickness * 0.5f * LaserHitboxScale, LaserHeight * 0.5f * LaserHitboxScale));
+		Beam->SetRelativeRotation(FRotator(0.f, Yaw, 0.f));
+		Beam->SetRelativeLocation(FVector(LaserLength * 0.5f, 0.f, 0.f).RotateAngleAxis(Yaw, FVector::UpVector));
+
+		Beam->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		Beam->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		Beam->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+		Beam->SetGenerateOverlapEvents(true);
+
+		// 비주얼 메시 (있으면)
+		if (LaserBeamMesh)
+		{
+			UStaticMeshComponent* VisualMesh = NewObject<UStaticMeshComponent>(this, *FString::Printf(TEXT("LaserVisual_%d"), i));
+			VisualMesh->SetupAttachment(Beam);
+			VisualMesh->RegisterComponent();
+			VisualMesh->SetStaticMesh(LaserBeamMesh);
+			VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			const FVector MeshSize = LaserBeamMesh->GetBounds().BoxExtent * 2.f;
+			VisualMesh->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+			VisualMesh->SetRelativeScale3D(FVector(
+				LaserThickness / FMath::Max(MeshSize.X, 1.f),   // 굵기
+				LaserLength / FMath::Max(MeshSize.Y, 1.f),   // 길이
+				LaserHeight / FMath::Max(MeshSize.Z, 1.f))); // 높이
+		}
+
+		LaserBeams.Add(Beam);
+	}
+
+	// 일정 간격마다 데미지 판정
+	GetWorldTimerManager().SetTimer(LaserDamageTimerHandle, this, &ABossMonster::ApplyLaserDamageTick, LaserDamageInterval, true);
+}
+
+void ABossMonster::ApplyLaserDamageTick()
+{
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	for (UBoxComponent* Beam : LaserBeams)
+	{
+		if (!Beam)
+		{
+			continue;
+		}
+
+		TArray<AActor*> OverlappingActors;
+		Beam->GetOverlappingActors(OverlappingActors, APawn::StaticClass());
+
+		if (OverlappingActors.Contains(PlayerPawn))
+		{
+			if (APlayerCharacter* Player = Cast<APlayerCharacter>(PlayerPawn))
+			{
+				Player->TakeDamageFromEnemy(LaserDamagePerTick);
+			}
+			break;
+		}
+	}
+}
+
+void ABossMonster::StopLaserPhase()
+{
+	bLaserActive = false;
+	GetWorldTimerManager().ClearTimer(LaserDamageTimerHandle);
 }
