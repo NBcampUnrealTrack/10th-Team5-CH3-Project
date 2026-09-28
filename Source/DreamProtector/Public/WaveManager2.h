@@ -60,8 +60,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	UPROPERTY(BlueprintAssignable, Category = "Stage 2|UI")
 	FOnStage2WaveCountdownStarted OnWaveCountdownStarted;
 
-protected:
-	virtual void BeginPlay() override;
+  protected:
+	  virtual void BeginPlay() override;
 
 		// Stage 2 시작 후 경과 시간(초)
 		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stage 2")
@@ -106,7 +106,7 @@ protected:
 	FTimerHandle ElevatorTimerHandle;
 	FTimerHandle GateTimerHandle;
 	FTimerHandle PreparationTimerHandle;
-	FTimerHandle FinalPreparationTimerHandle;\
+	FTimerHandle FinalPreparationTimerHandle;
 	// 각 전투의 카운트다운 시작을 예약하는 타이머
 	FTimerHandle Phase1CountdownTimerHandle;
 	FTimerHandle Phase2CountdownTimerHandle;
