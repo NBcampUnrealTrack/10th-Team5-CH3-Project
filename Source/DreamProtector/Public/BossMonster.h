@@ -65,6 +65,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
 	EBossPhase CurrentPhase = EBossPhase::Phase1;
 
+	// 전환 중인 다음 페이즈 (몽타주가 끝나면 적용)
+	EBossPhase PendingPhase = EBossPhase::Phase1;
+
 	// 페이즈 체력 비율 전환, 필요 시 에이터에서 조정 가능
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase")
 	float Phase2Threshold = 0.5f;
@@ -279,6 +282,58 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Boss|Events")
 	FOnBossDied OnBossDied;
+	//----------- 2페이즈
+
+	// 2페이즈 진입 연출 전용 (비워두면 연출 없이 바로 전환)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Anim")
+	UAnimMontage* Phase2TransitionMontage;
+
+	//----------- 3페이즈
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	class UStaticMesh* LaserBeamMesh;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserLength = 3000.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserThickness = 60.f;
+
+	// 빔 판정의 세로 두께
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserHeight = 250.f;
+
+	// 초당 회전 속도(도)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserRotationSpeed = 20.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserDamagePerTick = 15.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserDamageInterval = 0.5f;
+
+	// 판정 박스를 눈에 보이는 빔보다 얼마나 더 굵게 할지
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase3")
+	float LaserHitboxScale = 1.5f;
+
+	// 3페이즈 진입 연출 전용 (Staff_Attack_B 등)
+	UPROPERTY(EditDefaultsOnly, Category = "Boss|Anim")
+	UAnimMontage* Phase3TransitionMontage;
+
+	bool bLaserActive = false;
+
+	// 레이저 빔이 도는 높이. 레벨의 "BossLaserGround" 태그 액터 Z값으로 BeginPlay에서 세팅
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase3")
+	FVector LaserGroundLocation;
+
+	UPROPERTY()
+	class USceneComponent* LaserPivot;
+
+	UPROPERTY()
+	TArray<class UBoxComponent*> LaserBeams;
+
+	FTimerHandle LaserDamageTimerHandle;
 
 protected:
 
@@ -304,4 +359,10 @@ protected:
 
 	void PlayRangedAttackSound();
 
+	// 3페이즈 레이저
+	void StartLaserPhase();
+
+	void StopLaserPhase();
+
+	void ApplyLaserDamageTick();
 };
