@@ -12,6 +12,13 @@ AWeaponBase::AWeaponBase()
 	StaticMeshComp->SetupAttachment(SceneRoot);
 }
 
+void AWeaponBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+}
+
+
 void AWeaponBase::Attack()
 {
 

@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
+
 UCLASS()
 class DREAMPROTECTOR_API AWeaponBase : public AActor
 {
@@ -11,6 +12,9 @@ class DREAMPROTECTOR_API AWeaponBase : public AActor
 	
 public:	
 	AWeaponBase();
+
+	//Attack 가상함수
+	virtual void Attack();
 
 protected:
 	//공격 데미지 변수
@@ -22,7 +26,6 @@ protected:
 	//사거리 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WeaponBase")
 	float Range;
-
 	//루트 컴포넌트 포인터
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* SceneRoot;
@@ -30,8 +33,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* StaticMeshComp;
 
-	//Attack 가상함수
-	virtual void Attack();
-
+	virtual void BeginPlay() override;
 
 };

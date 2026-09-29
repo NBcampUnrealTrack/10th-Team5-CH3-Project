@@ -1,34 +1,1201 @@
 #include "PlayerCharacter.h"
+#include "Camera/CameraComponent.h"
+#include "Interactable.h"
+#include "WeaponBase.h"
+#include "StaffBase.h"
+#include "InventoryComponent.h"
+#include "ProjectilePoolComponent.h"
+#include "EnhancedInputComponent.h"
+#include "InputAction.h"
+#include "Animation/AnimInstance.h"
+#include "Components/ChildActorComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "InventoryComponent.h"
+#include "ItemData.h"
+#include "WindupBomb.h"
+#include "Barricade.h"
+#include "Bed.h"
+#include "Elevator.h"
+#include "ItemBase.h"
+
+#include "GameFrameWork/SpringArmComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
  	
 	PrimaryActorTick.bCanEverTick = true;
 
-}
+	//스프링암 컴포넌트 추가
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->TargetArmLength = 400.0f;
+	SpringArm->bUsePawnControlRotation = true;
+	SpringArm->SocketOffset = FVector(0.0f, 50.0f, 50.0f);
 
+	// 벽 충돌 대응
+	SpringArm->bDoCollisionTest = true;
+	SpringArm->ProbeChannel = ECC_Camera;
+	SpringArm->ProbeSize = 12.0f;
+
+	//카메라 렉 사용하여 뒤늦게 따라오기 (이동)
+	SpringArm->bEnableCameraLag = true;
+	SpringArm->CameraLagSpeed = 8.0f;
+	//회전
+	SpringArm->bEnableCameraRotationLag = true;
+	SpringArm->CameraRotationLagSpeed = 12.0f;
+
+	//카메라 컴포넌트추가
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	Camera->bUsePawnControlRotation = false;
+
+	Camera->SetRelativeLocation(FVector::ZeroVector);
+	Camera->SetRelativeRotation(FRotator::ZeroRotator);
+
+	//인벤토리 컴포넌트 추가
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
+	CastPoint = CreateDefaultSubobject<USceneComponent>(TEXT("CastPoint"));
+	CastPoint->SetupAttachment(RootComponent);
+
+	ProjectilePoolComponent = CreateDefaultSubobject<UProjectilePoolComponent>(TEXT("ProjectilePoolComponent"));
+
+	// 캐릭터 기준 앞쪽으로 이동
+	CastPoint->SetRelativeLocation(FVector(200.0f, 0.0f, 50.0f));
+}
 
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-}
 
+	CurrentHP = MaxHP;
+	CurrentMana = MaxMana;
+
+	// BP_PlayerCharacter에 붙어있는 Child Actor Component 가져오기
+	UChildActorComponent* StaffWeaponComponent =
+		FindComponentByClass<UChildActorComponent>();
+
+	ApplyControlMode(CurrentControlMode);
+
+	if (StaffWeaponComponent)
+	{
+		// Child Actor Component 안의 실제 BP_StaffBase Actor 가져오기
+		AActor* StaffActor =
+			StaffWeaponComponent->GetChildActor();
+
+		CurrentWeapon =
+			Cast<AWeaponBase>(StaffActor);
+
+		if (CurrentWeapon)
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("Weapon Found: %s"),
+				*CurrentWeapon->GetName()
+			);
+		}
+	}
+}
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 매 프레임 플레이어 앞에
+	// 상호작용 가능한 Actor가 있는지 확인
+	CheckInteractable();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	UEnhancedInputComponent* EnhancedInputComponent =
+		Cast<UEnhancedInputComponent>(PlayerInputComponent);
+
+	if (!EnhancedInputComponent)
+	{
+		return;
+	}
+
+	// V키 카메라 모드 변경
+	if (ChangeControlModeAction)
+	{
+		EnhancedInputComponent->BindAction(
+			ChangeControlModeAction,
+			ETriggerEvent::Started,
+			this,
+			&APlayerCharacter::ChangeControlMode
+		);
+	}
 }
 
-void APlayerCharacter::Move(const FVector2D& MovementVector) //�÷��̾� �̵��Լ�
+//실제 플레이어 이동함수
+void APlayerCharacter::Move(const FVector2D& MovementVector)
 {
-	AddMovementInput(GetActorForwardVector(), MovementVector.X);
-	AddMovementInput(GetActorRightVector(), MovementVector.Y);
+	// 상호작용 중에는 이동 입력 무시
+	if (bIsInteracting)
+	{
+		return;
+	}
+
+	if (!Controller)
+	{
+		return;
+	}
+
+	// 대각선 입력 시 속도가 더 빨라지지 않도록 정규화
+	FVector2D NormalizedInput = MovementVector;
+
+	//카메라가 바라보는 방향
+	FRotator ControlRotation = Controller->GetControlRotation();
+
+	//위/아래 Pitch는 이동 방향에 사용하지 않음
+	FRotator YawRotation(
+		0.0f,
+		ControlRotation.Yaw,
+		0.0f
+	);
+
+	// 카메라 기준 전방 / 우측 방향
+	const FVector ForwardDirection =
+		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+	const FVector RightDirection =
+		FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	// 정규화된 입력값 적용
+	AddMovementInput(
+		ForwardDirection,
+		NormalizedInput.X
+	);
+
+	AddMovementInput(
+		RightDirection,
+		NormalizedInput.Y
+	);
+}
+
+//실제 플레이어 이동속도 스프린트값으로 증가
+void APlayerCharacter::StartSprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+}
+//실제 플레이어 이동속도 다시 평소대로 감소
+void APlayerCharacter::StopSprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
+}
+//ABP
+void APlayerCharacter::FireCurrentWeapon()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	CurrentWeapon->Attack();
+	PlayAttackSound();
+}
+//ABP
+void APlayerCharacter::EndAttackAnimation()
+{
+	//bIsAttacking = false;
+
+	// 현재 카메라 모드의 회전 설정으로 복귀
+	ApplyControlMode(CurrentControlMode);
+}
+
+void APlayerCharacter::StartAttack()
+{
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("StartAttack / Can:%d Attack:%d Reload:%d"),
+		bCanAttack,
+		bIsAttacking,
+		bIsReloading
+	);
+
+
+	// 단발 쿨타임 중이면 공격 불가
+	if (!bCanAttack)
+	{
+		return;
+	}
+
+	// 이미 공격 중이거나 연사중이면 공격 불가
+	if (bIsAttacking || bIsAutoFiring)
+	{
+		return;
+	}
+
+	// 장전 중이면 공격 불가
+	if (bIsReloading)
+	{
+		return;
+	}
+
+	// 무기또는 공격 몽타주 없다면 공격 불가
+	if (!CurrentWeapon || !AttackMontage)
+	{
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance 가져오기
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	// 단발 몽타주 재생중이면 재시작 금지
+	if (AnimInstance->Montage_IsPlaying(AttackMontage))
+	{
+		return;
+	}
+
+	// 마나 소모
+	if (!ConsumeMana())
+	{
+		return;
+	}
+
+	// 단발 공격 몽타주 재생
+	const float MontageDuration = PlayAnimMontage(AttackMontage);
+
+	// 실패시 공격하지 않음
+	if (MontageDuration <= 0.0f)
+	{
+		return;
+	}
+
+	// 단발 공격 상태 시작
+	bIsAttacking = true;
+	bIsAutoFiring = false;
+
+	// 몽타주가 정상종료될때 호출 함수
+	FOnMontageEnded EndDelegate;
+
+	EndDelegate.BindUObject(
+		this,
+		&APlayerCharacter::OnAttackMontageEnded
+	);
+
+	AnimInstance->Montage_SetEndDelegate(
+		EndDelegate,
+		AttackMontage
+	);
+
+	// 공격 중에는 카메라가 보는 방향으로 캐릭터 고정
+	bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+	}
+
+	// 단발 쿨타임
+	bCanAttack = false;
+
+	GetWorldTimerManager().SetTimer(
+		SingleFireCooldownTimer,
+		[this]()
+		{
+			bCanAttack = true;
+		},
+		SingleFireCooldown,
+		false
+	);
+
+	// 일정 시간 이상 누르면 연사 시작
+	GetWorldTimerManager().SetTimer(
+		AutoFireStartTimerHandle,
+		this,
+		&APlayerCharacter::StartAutoFire,
+		AutoFireHoldTime,
+		false
+	);
+}
+
+void APlayerCharacter::StartAutoFire()
+{
+	// 단발 공격 몽타주에서 연사 몽타주로 전환
+	bIsAutoFiring = true;
+	bIsAttacking = true;
+
+	// 연사 중에는 카메라 바라보는 방향으로 몸 고정
+	bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+	}
+
+	// 연사 상체 모션 시작
+	if (AutoFireMontage)
+	{
+		PlayAnimMontage(AutoFireMontage);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		AutoFireTimerHandle,
+		this,
+		&APlayerCharacter::AutoAttack,
+		AttackInterval,
+		true
+	);
+}
+
+void APlayerCharacter::AutoAttack()
+{
+	if (!CurrentWeapon)
+	{
+		StopAttack();
+		return;
+	}
+
+	// 마나 없으면 연사 종료
+	if (!ConsumeMana())
+	{
+		StopAttack();
+		return;
+	}
+
+	CurrentWeapon->Attack();
+	PlayAttackSound();
+}
+
+void APlayerCharacter::StopAttack()
+{
+	// 연사 시작 대기 취소
+	GetWorldTimerManager().ClearTimer(AutoFireStartTimerHandle);
+
+	// 연사 종료
+	GetWorldTimerManager().ClearTimer(AutoFireTimerHandle);
+
+	// 실제 연사 상태였다면
+	// Attack01의 EndAttack Notify를 못 거쳤을 수 있으므로 직접 종료
+	if (bIsAutoFiring && AutoFireMontage)
+	{
+		StopAnimMontage(AutoFireMontage);
+	}
+
+	bIsAutoFiring = false;
+	bIsAttacking = false;
+
+
+	// 현재 카메라 모드 회전 설정으로 복귀
+	ApplyControlMode(CurrentControlMode);
+
+	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
+	{
+		Staff->ResetCastVFX();
+	}
+}
+
+void APlayerCharacter::TryInteract()
+{
+	// 상호작용 탐색 거리
+	const float InteractionDistance = 500.0f;
+
+	// 상호작용 탐색 범위
+	const float InteractionRadius = 120.0f;
+
+	// 플레이어 위치부터 시작
+	FVector Start = GetActorLocation();
+
+	// 플레이어가 바라보는 방향으로 500만큼 떨어진 위치
+	FVector End = Start + GetActorForwardVector() * InteractionDistance;
+
+	// Sweep 결과를 저장할 변수
+	FHitResult HitResult;
+
+	// 충돌 검사 조건
+	FCollisionQueryParams Params;
+
+	// 자기 자신은 검사 대상에서 제외
+	Params.AddIgnoredActor(this);
+
+	// Visibility 채널에 충돌하는 Actor 탐색
+	bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(InteractionRadius),
+		Params
+	);
+
+	if (!bHit)
+	{
+		return;
+	}
+
+	// 감지된 Actor 가져오기
+	AActor* HitActor = HitResult.GetActor();
+
+	// Actor가 없으면 종료
+	if (!HitActor)
+	{
+		return;
+	}
+
+	// IInteractable 인터페이스를 구현하지 않았다면 종료
+	if (!HitActor->Implements<UInteractable>())
+	{
+		return;
+	}
+
+	//현재 감지한 Actor를 임시로 저장
+	PendingInteractActor = HitActor;
+
+	if (InteractMontage)
+	{
+		// 상호작용 상태 시작
+		bIsInteracting = true;
+
+		// 현재 이동을 즉시 정지
+		GetCharacterMovement()->StopMovementImmediately();
+
+		// 상호작용 애니메이션 재생
+		PlayAnimMontage(InteractMontage);
+	}
+	else
+	{
+		ExecuteInteraction();
+	}
+}
+
+
+
+//게터 현재 체력
+float APlayerCharacter::GetCurrentHP()const
+{
+	return CurrentHP;
+}
+//게터 최대 체력
+float APlayerCharacter::GetMaxHP()const
+{
+	return MaxHP;
+}
+//게터 현재마나
+float APlayerCharacter::GetCurrentMana()const
+{
+	return CurrentMana;
+}
+//게터 최대마나
+float APlayerCharacter::GetMaxMana()const
+{
+	return MaxMana;
+}
+//마나 소모함수
+bool APlayerCharacter::ConsumeMana()
+{
+	//현재 마나가 0이하라면
+	if (CurrentMana <= 0)
+	{
+		//함수실행되지않음
+		UE_LOG(LogTemp, Warning, TEXT("Mana Emty!"));
+
+		return false;
+	}
+	//현재마나가0이상이면 마나1소모
+	CurrentMana--;
+	UE_LOG(LogTemp, Warning, TEXT("Current Mana: %d / %d"),CurrentMana, MaxMana);
+
+	//마나가 변경됫다고 알림
+	OnManaChanged.Broadcast(CurrentMana, MaxMana);
+
+	return true;
+}
+// 현재  장전이 가능한지 확인
+void APlayerCharacter::ReloadMana()
+{
+	// 장전하고잇지않다면
+	if (bIsReloading)
+	{
+		return;
+	}
+	//현재 마나가 최대마나보다 크거나 같다면
+	if (CurrentMana >= MaxMana)
+	{
+		return;
+	}
+	//장전상태 트루로 변경
+	bIsReloading = true;
+
+	//재장전 몽타주
+	if (ReloadMontage)
+	{
+		PlayAnimMontage(ReloadMontage);
+	}
+
+	PlayReloadSound();
+
+	// 현재 무기의 장전 이펙트 실행
+	if (AStaffBase* Staff = Cast<AStaffBase>(CurrentWeapon))
+	{
+		Staff->PlayReloadVFX();
+	}
+}
+//실제 장전 함수 
+void APlayerCharacter::FinishReload()
+{
+	//마나 완충
+	CurrentMana = MaxMana;
+	//장전상태 종료
+	bIsReloading = false;
+	//마나가 변경됫다는 알림
+	OnManaChanged.Broadcast(CurrentMana, MaxMana);
+
+	UE_LOG(LogTemp, Warning, TEXT("Reload Complete! Mana: %d / &d"), CurrentMana, MaxMana);
+}
+
+
+void APlayerCharacter::ChangeControlMode()
+{
+	switch (CurrentControlMode)
+	{
+	case EPlayControlMode::ThirdPerson:
+		ApplyControlMode(EPlayControlMode::FirstPerson);
+		break;
+
+	case EPlayControlMode::FirstPerson:
+		ApplyControlMode(EPlayControlMode::Shoulder);
+		break;
+
+	case EPlayControlMode::Shoulder:
+		ApplyControlMode(EPlayControlMode::ThirdPerson);
+		break;
+
+	default:
+		ApplyControlMode(EPlayControlMode::ThirdPerson);
+		break;
+	}
+}
+
+void APlayerCharacter::ApplyControlMode(EPlayControlMode NewControlMode)
+{
+	// 필요한 컴포넌트 확인
+	UCharacterMovementComponent* MovementComponent =
+		GetCharacterMovement();
+
+	if (!MovementComponent || !SpringArm || !Camera)
+	{
+		return;
+	}
+
+	// 현재 모드 변경
+	CurrentControlMode = NewControlMode;
+
+	switch (CurrentControlMode)
+	{
+
+		// 3인칭
+	case EPlayControlMode::ThirdPerson:
+	{
+		// TopDown에서 사용했던 절대 회전 해제
+		SpringArm->SetUsingAbsoluteRotation(false);
+
+		// 마우스 회전을 카메라가 따라감
+		SpringArm->bUsePawnControlRotation = true;
+
+		// 벽 충돌 활성화
+		SpringArm->bDoCollisionTest = true;
+
+		// 기본 TPS 거리
+		SpringArm->TargetArmLength = 400.0f;
+
+		// 캐릭터보다 조금 높은 위치
+		SpringArm->TargetOffset =
+			FVector(0.0f, 0.0f, 60.0f);
+
+		//기존에 사용하던 TPS Offset
+		SpringArm->SocketOffset =
+			FVector(0.0f, 0.0f, 50.0f);
+
+		Camera->SetFieldOfView(90.0f);
+
+		// 카메라를 돌려도 캐릭터가 바로 따라 돌지 않음 // 카메라가 보는 좌우 방향으로 캐릭터 몸도 회전
+		bUseControllerRotationYaw = true; //false
+
+		// 이동 방향으로 몸 회전
+		// A / D 입력 시 캐릭터가 옆걸음하게 됨
+		MovementComponent->bOrientRotationToMovement = false; //true
+
+		// Controller Desired Rotation은 사용하지 않음
+		MovementComponent->bUseControllerDesiredRotation = false;
+
+		// 1인칭에서 숨겼던 Mesh 다시 표시
+		GetMesh()->SetOwnerNoSee(false);
+
+		break;
+	}
+
+	// 1인칭
+	case EPlayControlMode::FirstPerson:
+	{
+		SpringArm->SetUsingAbsoluteRotation(false);
+
+		SpringArm->bUsePawnControlRotation = true;
+
+		// ArmLength 0이므로 충돌 검사
+		SpringArm->bDoCollisionTest = false;
+
+		// 캐릭터 위치까지 카메라 이동
+		SpringArm->TargetArmLength = 0.0f;
+
+		// 눈높이
+		SpringArm->TargetOffset =
+			FVector(
+				0.0f,
+				0.0f,
+				BaseEyeHeight
+			);
+
+		SpringArm->SocketOffset =
+			FVector::ZeroVector;
+
+		Camera->SetFieldOfView(90.0f);
+
+		// 마우스 Yaw를 캐릭터도 따라감
+		bUseControllerRotationYaw = true;
+
+		// 이동 방향 자동 회전 OFF
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+
+		// 몸이 카메라를 가리지 않도록
+		GetMesh()->SetOwnerNoSee(true);
+
+		break;
+	}
+
+	// 숄더 / 조준
+	case EPlayControlMode::Shoulder:
+	{
+		SpringArm->SetUsingAbsoluteRotation(false);
+
+		SpringArm->bUsePawnControlRotation = true;
+
+		SpringArm->bDoCollisionTest = true;
+
+		// 일반 TPS보다 가까이
+		SpringArm->TargetArmLength = 220.0f;
+
+		SpringArm->TargetOffset =
+			FVector(
+				0.0f,
+				0.0f,
+				60.0f
+			);
+
+		// 오른쪽 어깨 방향
+		SpringArm->SocketOffset =
+			FVector(
+				0.0f,
+				90.0f,
+				0.0f
+			);
+
+		//FOV 좁게 사용
+		Camera->SetFieldOfView(80.0f);
+
+		// 조준 방향으로 캐릭터 몸도 회전
+		bUseControllerRotationYaw = true;
+
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+
+		GetMesh()->SetOwnerNoSee(false);
+
+		break;
+	}
+
+	default:
+		break;
+	}
+}
+
+void APlayerCharacter::OnAttackMontageEnded(
+	UAnimMontage* Montage,
+	bool bInterrupted
+)
+{
+	// 연사로 넘어간 상태가 아니라면 단발 공격 종료
+	if (!bIsAutoFiring)
+	{
+		bIsAttacking = false;
+
+		ApplyControlMode(CurrentControlMode);
+	}
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Attack Montage Ended / Interrupted: %d"),
+		bInterrupted
+	);
+}
+
+bool APlayerCharacter::UseItem(FName ItemKey)
+{
+	// 인벤토리 컴포넌트 찾기
+	UInventoryComponent* Inventory =
+		FindComponentByClass<UInventoryComponent>();
+
+	if (!Inventory)
+	{
+		return false;
+	}
+
+	// 해당 아이템을 실제로 가지고 있는지 확인
+	if (!Inventory->HasEnoughItem(ItemKey, 1))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("UseItem Failed - Item Not Found: %s"),
+			*ItemKey.ToString()
+		);
+
+		return false;
+	}
+
+	// DT_ItemData에서 아이템 정보 찾기
+	const FItemData* ItemData = Inventory->FindItemData(ItemKey);
+
+	if (!ItemData)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("UseItem Failed - ItemData Not Found: %s"),
+			*ItemKey.ToString()
+		);
+
+		return false;
+	}
+
+	// 아이템 사용 타입에 따라 효과 실행
+	switch (ItemData->UseType)
+	{
+	case EItemUseType::WindupBomb:
+	{
+		if (!WindupBombClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WindupBombClass is not set"));
+			return false;
+		}
+
+		// 플레이어 앞쪽 설치 위치
+		const FVector SpawnLocation =
+			GetActorLocation()
+			+ GetActorForwardVector() * ItemSpawnDistance;
+
+		const FRotator SpawnRotation = GetActorRotation();
+
+		AWindupBomb* Bomb =
+			GetWorld()->SpawnActor<AWindupBomb>(
+				WindupBombClass,
+				SpawnLocation,
+				SpawnRotation
+			);
+
+		if (!Bomb)
+		{
+			return false;
+		}
+
+		// Spawn 성공 후에만 아이템 1개 소비
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("WindupBomb Used"));
+
+		return true;
+	}
+
+	case EItemUseType::Barricade:
+	{
+		if (!BarricadeClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("BarricadeClass is not set"));
+			return false;
+		}
+
+		// 플레이어 앞쪽에 설치
+		const FVector SpawnLocation =
+			GetActorLocation()
+			+ GetActorForwardVector() * ItemSpawnDistance;
+
+		const FRotator SpawnRotation = GetActorRotation();
+
+		ABarricade* Barricade =
+			GetWorld()->SpawnActor<ABarricade>(
+				BarricadeClass,
+				SpawnLocation,
+				SpawnRotation
+			);
+
+		// 생성 실패하면 아이템을 소비하지 않음
+		if (!Barricade)
+		{
+			return false;
+		}
+
+		// 설치 성공 후에만 인벤토리에서 1개 제거
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("Barricade Used"));
+
+		return true;
+	}
+
+	case EItemUseType::SleepLamp:
+	{
+		ABed* Bed = Cast<ABed>(
+			UGameplayStatics::GetActorOfClass(GetWorld(), ABed::StaticClass())
+		);
+
+		if (!Bed)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SleepLamp Failed: Bed Not Found"));
+			return false;
+		}
+
+		// 침대 스트레스 30 감소
+		Bed->DecreaseStress(30);
+
+		// 성공했을 때만 수면등 소비
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("SleepLamp Used"));
+
+		return true;
+	}
+
+	case EItemUseType::HeartGear:
+	{
+		// 최대 체력의 30%만큼 회복
+		const float HealAmount = MaxHP * 0.3f;
+
+		// MaxHP를 초과하지 않도록 제한
+		CurrentHP = FMath::Clamp(
+			CurrentHP + HealAmount,
+			0.0f,
+			MaxHP
+		);
+		OnHealthChanged.Broadcast(CurrentHP, MaxHP);
+		// 사용에 성공했으므로 인벤토리에서 하트 태엽 1개 제거
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("HeartGear Used - HP: %.1f / %.1f"),
+			CurrentHP,
+			MaxHP
+		);
+
+		return true;
+	}
+	case EItemUseType::StarCandy:
+	{
+		// 공격력 30% 증가
+		AttackDamageMultiplier = 1.3f;
+
+		// 기존 타이머가 있다면 초기화
+		GetWorldTimerManager().ClearTimer(StarCandyTimerHandle);
+
+		// 20초 후 공격력 원상복구
+		GetWorldTimerManager().SetTimer(
+			StarCandyTimerHandle,
+			[this]()
+			{
+				AttackDamageMultiplier = 1.0f;
+
+				UE_LOG(LogTemp, Warning, TEXT("StarCandy Buff End"));
+			},
+			20.0f,
+			false
+		);
+
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(LogTemp, Warning, TEXT("StarCandy Used - Attack x1.3"));
+
+		return true;
+	}
+
+	case EItemUseType::GearShoes:
+	{
+		UCharacterMovementComponent* Movement = GetCharacterMovement();
+
+		if (!Movement)
+		{
+			return false;
+		}
+
+		// 이미 신발 버프가 적용 중이 아니라면 원래 속도 저장
+		if (!GetWorldTimerManager().IsTimerActive(GearShoesTimerHandle))
+		{
+			OriginalWalkSpeed = Movement->MaxWalkSpeed;
+		}
+
+		// 원래 이동속도의 125%
+		Movement->MaxWalkSpeed = OriginalWalkSpeed * 1.25f;
+
+		// 다시 사용하면 기존 타이머 초기화
+		GetWorldTimerManager().ClearTimer(GearShoesTimerHandle);
+
+		// 15초 후 원래 속도로 복구
+		GetWorldTimerManager().SetTimer(
+			GearShoesTimerHandle,
+			[this]()
+			{
+				if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+				{
+					MovementComp->MaxWalkSpeed = OriginalWalkSpeed;
+
+					UE_LOG(
+						LogTemp,
+						Warning,
+						TEXT("GearShoes Buff End - Speed: %.1f"),
+						OriginalWalkSpeed
+					);
+				}
+			},
+			15.0f,
+			false
+		);
+
+		Inventory->RemoveItems(ItemKey, 1);
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("GearShoes Used - Speed: %.1f"),
+			Movement->MaxWalkSpeed
+		);
+
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
+void APlayerCharacter::Die()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	bIsDead = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("Player Dead"));
+
+	// 플레이어 이동 정지
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	// 플레이어 입력 비활성화
+	if (APlayerController* PlayerController =
+		Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PlayerController);
+	}
+	OnPlayerDied.Broadcast();
+}
+
+float APlayerCharacter::GetAttackDamageMultiplier() const
+{
+	return AttackDamageMultiplier;
+}
+
+
+void APlayerCharacter::TakeDamageFromEnemy(float DamageAmount)
+{
+	// 이미 죽은 상태면 추가 데미지 무시
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 체력 감소
+	CurrentHP = FMath::Clamp(
+		CurrentHP - DamageAmount,
+		0.0f,
+		MaxHP
+	);
+	// UI에게 HP가 변경됐다고 알림
+	OnHealthChanged.Broadcast(CurrentHP, MaxHP);
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Player Hit! Damage: %.1f / HP: %.1f / %.1f"),
+		DamageAmount,
+		CurrentHP,
+		MaxHP
+	);
+
+	// 사망 체크
+	if (CurrentHP <= 0.0f)
+	{
+		Die();
+	}
+	else
+	{
+		// 살아있으면 피격 애니메이션 재생
+		PlayHitReaction();
+	}
+}
+
+void APlayerCharacter::ExecuteInteraction()
+{
+	// 저장된 상호작용 대상이 없다면 종료
+	if (!PendingInteractActor)
+	{
+		return;
+	}
+
+	// 저장해둔 Actor가 IInteractable 인터페이스를 구현하고 있는지 다시 확인
+	if (PendingInteractActor->Implements<UInteractable>())
+	{
+		// 인터페이스로 캐스팅
+		IInteractable* Interactable =
+			Cast<IInteractable>(PendingInteractActor);
+
+		if (Interactable)
+		{
+			Interactable->Interact(this);
+		}
+	}
+
+	// 상호작용이 끝났으므로 저장해둔 Actor 참조 제거
+	PendingInteractActor = nullptr;
+}
+
+void APlayerCharacter::EndInteraction()
+{
+	// 상호작용 상태 종료
+	bIsInteracting = false;
+}
+
+void APlayerCharacter::PlayHitReaction()
+{
+	// 피격 Montage가 지정되지 않았다면 실행하지 않음
+	if (!HitReactMontage)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("HitReactMontage is not assigned!")
+		);
+
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance를 통해
+	// AM_HitReact Montage를 재생한다.
+	PlayAnimMontage(HitReactMontage);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Hit Reaction Montage Played")
+	);
+}
+
+void APlayerCharacter::CheckInteractable()
+{
+	//상호작용 탐색 거리
+	const float InteractionDistance = 500.0f;
+
+	//상호작용 탐색 범위
+	const float InteractionRadius = 120.0f;
+
+	//플레이어 현재 위치
+	const FVector Start = GetActorLocation();
+
+	//플레이어가 바라보는 방향으로 500 만큼 앞
+	const FVector End =
+		Start + GetActorForwardVector() * InteractionDistance;
+
+	//Sweep 결과 저장
+	FHitResult HitResult;
+
+	//충돌 검사 조건
+	FCollisionQueryParams Params;
+
+	//자기 자신은 검사 대상에서 제외
+	Params.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		FCollisionShape::MakeSphere(InteractionRadius),
+		Params
+	);
+
+	bool bCanInteract = false;
+	FText InteractionText = FText::GetEmpty();
+
+	if (bHit)
+	{
+		AActor* HitActor = HitResult.GetActor();
+
+		if (HitActor && HitActor->Implements<UInteractable>())
+		{
+			// 엘리베이터
+			if (AElevator* Elevator = Cast<AElevator>(HitActor))
+			{
+				// 이미 사용한 엘리베이터면 아무것도 하지 않음
+				if (!Elevator->IsActivated())
+				{
+					bCanInteract = true;
+					InteractionText =
+						FText::FromString(TEXT("를 눌러 작동"));
+				}
+			}
+
+			// 아이템
+			else if (HitActor->IsA<AItemBase>())
+			{
+				bCanInteract = true;
+				InteractionText =
+					FText::FromString(TEXT("를 눌러 획득"));
+			}
+
+			// 그 외 상호작용 오브젝트
+			else
+			{
+				bCanInteract = true;
+				InteractionText =
+					FText::FromString(TEXT("를 눌러 상호작용"));
+			}
+		}
+	}
+
+	OnInteractionChanged.Broadcast(
+		bCanInteract,
+		InteractionText
+	);
 }
