@@ -157,10 +157,6 @@
 
 ### 보스 패턴과 페이즈 전환
 
-<p align="center">
-  <img src="docs/images/boss-battle.jpg" alt="보스 체력바와 마법사가 보이는 보스전 화면" width="850">
-</p>
-
 > 근접 낫 공격 · 원거리 발사체 · 경고 장판 · 4방향 회전 레이저
 
 보스는 `BossMonster`에서 체력, 등장 연출, 공격 판정과 페이즈를 관리하며, `BossAIController`와 Behavior Tree Task가 공격 실행을 요청합니다. 아래 수치는 **C++ 기본값**입니다. 실제 공격 선택 순서와 반복 간격은 Behavior Tree 및 블루프린트 설정에 따라 달라집니다.
