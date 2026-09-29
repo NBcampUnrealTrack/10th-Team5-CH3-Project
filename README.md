@@ -43,7 +43,6 @@
 | <img src="docs/images/main-menu.jpg" alt="Dream Protector 메인 메뉴" width="460"> | <img src="docs/images/gameplay.jpg" alt="마법 발사체로 몬스터를 공격하는 실제 플레이 화면" width="460"> |
 | 장난감의 모험이 시작되는 아이의 방 | 이동·조준·발사와 빠른 아이템 슬롯 |
 
-이미지는 발표자료에 포함된 화면으로, 현재 소스의 실행 화면과 일부 차이가 있을 수 있습니다.
 
 ## 게임 구성
 
