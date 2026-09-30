@@ -409,6 +409,9 @@ protected:
 	// 블랙보드의 CurrentPhase(정수) 키 갱신
 	void UpdatePhaseInBlackboard();
 
+	// 블랙보드의 bIsInvincible 키 갱신
+	void UpdateInvincibleInBlackboard(bool bValue);
+
 	void BeginGrowing();
 
 	void PlayRangedAttackSound();
