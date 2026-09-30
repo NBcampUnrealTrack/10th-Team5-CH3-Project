@@ -6,6 +6,8 @@
 #include "Sound/SoundBase.h"
 #include "Engine/SpotLight.h"
 #include "Components/LightComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 AWaveManager::AWaveManager()
 {
@@ -208,6 +210,16 @@ void AWaveManager::StartWaveTimer()
 
 void AWaveManager::OnWaveTimeExpired()
 {
+    if (bCleaningUpWave)
+    {
+        return;
+    }
+
+    if (CurrentWave == 3 &&
+        UGameplayStatics::GetCurrentLevelName(this, true) == TEXT("Stage1"))
+    {
+        return;
+    }
     UE_LOG(
         LogTemp,
         Warning,
@@ -333,6 +345,10 @@ void AWaveManager::StartNextWave()
 
 void AWaveManager::OnMonsterKilled()
 {
+    if (bCleaningUpWave)
+    {
+        return;
+    }
     // 처치한 몬스터 수 증가
     KilledMonsterCount++;
 
@@ -352,6 +368,20 @@ void AWaveManager::OnMonsterKilled()
         RemainingCount,
         CurrentMonsterCount
     );
+
+    if (CurrentWave == 3 && CurrentMonsterCount > 0 &&
+        RemainingCount == 0 && WaveMonsters.IsEmpty() &&
+        UGameplayStatics::GetCurrentLevelName(this, true) == TEXT("Stage1"))
+    {
+        // 중복 이동을 막고 이전 웨이브에서 예약한 타이머와 음악을 정리합니다.
+        bCleaningUpWave = true;
+        GetWorldTimerManager().ClearTimer(WaveTimerHandle);
+        GetWorldTimerManager().ClearTimer(TutorialTimerHandle);
+        GetWorldTimerManager().ClearTimer(NextWaveTimerHandle);
+        GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+        ChangeBGM(nullptr);
+        UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/Stage2")));
+    }
 }
 
 void AWaveManager::NotifyFirstWaveCountdown()
