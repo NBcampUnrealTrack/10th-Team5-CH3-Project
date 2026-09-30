@@ -137,6 +137,7 @@ void ABossMonster::CheckPhaseTransition()
 void ABossMonster::StartPhaseTransition(EBossPhase NewPhase)
 {
 	bIsInvincible = true;
+	UpdateInvincibleInBlackboard(true);
 	PendingPhase = NewPhase;
 
 	// 페이즈별 전환 몽타주 선택 (슬롯이 비어 있으면 연출 없이 바로 전환)
@@ -175,6 +176,7 @@ void ABossMonster::StartPhaseTransition(EBossPhase NewPhase)
 void ABossMonster::OnPhaseTransitionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	bIsInvincible = false;
+	UpdateInvincibleInBlackboard(false);
 	// AI 재개하려면 여기서 StartLogic() 호출
 
 	CurrentPhase = PendingPhase;
@@ -197,11 +199,11 @@ void ABossMonster::HandleDeath()
 
 	// 2페이즈 장판 정리 (예고 마법진 제거 + 폭발 타이머 취소)
 	GetWorldTimerManager().ClearTimer(GroundBlastTimerHandle);
-	for (UNiagaraComponent* W : PendingBlastWarnings)
+	for (UNiagaraComponent* WarningFX : PendingBlastWarnings)
 	{
-		if (W)
+		if (WarningFX)
 		{
-			W->DestroyComponent();
+			WarningFX->DestroyComponent();
 		}
 	}
 	PendingBlastWarnings.Reset();
@@ -270,6 +272,17 @@ void ABossMonster::UpdatePhaseInBlackboard()
 		if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
 		{
 			BB->SetValueAsInt(TEXT("CurrentPhase"), static_cast<int32>(CurrentPhase));
+		}
+	}
+}
+
+void ABossMonster::UpdateInvincibleInBlackboard(bool bValue)
+{
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
+		{
+			BB->SetValueAsBool(TEXT("bIsInvincible"), bValue);
 		}
 	}
 }
